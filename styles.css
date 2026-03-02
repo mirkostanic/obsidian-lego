@@ -1,0 +1,116 @@
+/* Modal */
+.brickset-modal {
+    padding: 20px;
+}
+
+.brickset-modal h2 {
+    margin-top: 0;
+}
+
+/* Settings Page */
+.brickset-settings-description {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-top: 0.5em;
+}
+
+/* Settings info/hint paragraphs */
+.brickset-hint {
+    margin-top: 0.5em;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+/* Login status */
+.brickset-status-ok {
+    margin-top: 0.5em;
+    font-size: 0.9em;
+    color: var(--text-success);
+}
+
+/* Success/Error messages */
+.brickset-success {
+    color: var(--text-success);
+}
+
+.brickset-error {
+    color: var(--text-error);
+}
+
+/* Loading indicator */
+.brickset-loading {
+    opacity: 0.6;
+}
+
+/* Sync Modal */
+.brickset-sync-modal {
+    min-width: 400px;
+}
+
+.sync-progress-container {
+    padding: 1em 0;
+}
+
+.sync-status-text {
+    margin-bottom: 0.5em;
+    font-weight: 500;
+}
+
+.sync-progress-bar-container {
+    width: 100%;
+    height: 20px;
+    background-color: var(--background-modifier-border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.sync-progress-bar {
+    height: 100%;
+    background-color: var(--interactive-accent);
+    transition: width 0.3s ease;
+}
+
+.sync-current-set {
+    margin-top: 1em;
+    font-size: 0.9em;
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+.sync-stats {
+    margin-top: 1em;
+}
+
+.sync-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5em;
+    font-size: 0.9em;
+}
+
+.sync-button-container {
+    margin-top: 1.5em;
+    text-align: center;
+}
+
+.sync-summary-header {
+    margin-bottom: 1em;
+}
+
+.sync-summary-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.sync-summary-errors {
+    color: var(--text-error);
+}
+
+.sync-summary-time {
+    margin-top: 1em;
+}
+
+.sync-error-message {
+    color: var(--text-error);
+    margin-bottom: 1em;
+}
