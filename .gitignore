@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+docs/
+
+# Build output
+main.js
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
