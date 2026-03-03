@@ -1,7 +1,7 @@
 import { App, Plugin, PluginManifest, Notice, TFile } from 'obsidian';
 import { BricksetPluginSettings, DEFAULT_SETTINGS, SyncProgress, SyncResult } from './types';
 import { BricksetSettingTab } from './settings';
-import { BricksetApiService, BricksetApiError } from './bricksetApi';
+import { BricksetApiService, BricksetApiError, BRICKSET_API_KEY } from './bricksetApi';
 import { NoteCreator } from './noteCreator';
 import { SetNumberModal, SyncModal } from './modal';
 import { SyncService } from './syncService';
@@ -120,10 +120,7 @@ export default class BricksetPlugin extends Plugin {
 	 * Get or create API service instance
 	 */
 	private getApiService(): BricksetApiService {
-		if (!this.settings.apiKey) {
-			throw new Error('API key not configured. Please set it in plugin settings.');
-		}
-		this.apiService ??= new BricksetApiService(this.settings.apiKey, this.settings.userHash);
+		this.apiService ??= new BricksetApiService(BRICKSET_API_KEY, this.settings.userHash);
 		return this.apiService;
 	}
 
@@ -131,11 +128,6 @@ export default class BricksetPlugin extends Plugin {
 	 * Show modal to input set number
 	 */
 	private showSetNumberModal() {
-		if (!this.settings.apiKey) {
-			new Notice('Please configure your Brickset API key in plugin settings first.');
-			return;
-		}
-
 		new SetNumberModal(this.app, (setNumber) => {
 			this.fetchAndCreateNote(setNumber);
 		}).open();
@@ -201,9 +193,6 @@ export default class BricksetPlugin extends Plugin {
 	 * Throw a user-facing Error if any check fails.
 	 */
 	private validateSyncPrerequisites(): void {
-		if (!this.settings.apiKey) {
-			throw new Error('Please configure your Brickset API key in plugin settings first.');
-		}
 		if (!this.settings.userHash) {
 			throw new Error('Please login with your Brickset credentials in plugin settings first.');
 		}
@@ -304,8 +293,8 @@ export default class BricksetPlugin extends Plugin {
 		* Start bidirectional sync service
 		*/
 	startSyncBack(): void {
-		if (!this.settings.apiKey || !this.settings.userHash) {
-			console.warn('Cannot start bidirectional sync: API key or user hash not configured');
+		if (!this.settings.userHash) {
+			console.warn('Cannot start bidirectional sync: user hash not configured');
 			return;
 		}
 
@@ -342,8 +331,8 @@ export default class BricksetPlugin extends Plugin {
 		* Manually sync current note to Brickset
 		*/
 	private async syncCurrentNote(file: TFile): Promise<void> {
-		if (!this.settings.apiKey || !this.settings.userHash) {
-			new Notice('Please configure API key and login in plugin settings first.');
+		if (!this.settings.userHash) {
+			new Notice('Please login in plugin settings first.');
 			return;
 		}
 

@@ -112,16 +112,15 @@ vi.mock('obsidian', () => {
 	};
 });
 
-vi.mock('../bricksetApi', () => {
-	return {
-		BricksetApiService: vi.fn().mockImplementation(function() {
-			return {
-				validateKey: vi.fn().mockResolvedValue(true),
-				login: vi.fn().mockResolvedValue('hash123')
-			};
-		})
-	};
-});
+vi.mock('../bricksetApi', () => ({
+	BRICKSET_API_KEY: '3-It8l-c0Wj-WO4ta',
+	BricksetApiService: vi.fn().mockImplementation(function() {
+		return {
+			validateKey: vi.fn().mockResolvedValue(true),
+			login: vi.fn().mockResolvedValue('hash123')
+		};
+	})
+}));
 
 // Mock main.ts (BricksetPlugin) to avoid loading the full plugin
 vi.mock('../main', () => {
@@ -136,7 +135,6 @@ import { BricksetSettingTab } from '../settings';
 function createMockPlugin() {
 	return {
 		settings: {
-			apiKey: 'test-key',
 			username: 'testuser',
 			password: 'testpass',
 			userHash: '',
@@ -199,12 +197,6 @@ describe('BricksetSettingTab', () => {
 	});
 
 	describe('onChange handlers', () => {
-		it('should update apiKey when Brickset API Key onChange fires', async () => {
-			await capturedHandlers.onChange['Brickset API Key']?.('new-api-key');
-			expect(plugin.settings.apiKey).toBe('new-api-key');
-			expect(plugin.saveSettings).toHaveBeenCalled();
-		});
-
 		it('should update legoSetsFolder when LEGO Sets Folder onChange fires', async () => {
 			await capturedHandlers.onChange['LEGO Sets Folder']?.('My LEGO');
 			expect(plugin.settings.legoSetsFolder).toBe('My LEGO');
@@ -331,23 +323,6 @@ describe('BricksetSettingTab', () => {
 	});
 
 	describe('onClick handlers', () => {
-		it('should show notice when Validate clicked with no apiKey', async () => {
-			plugin.settings.apiKey = '';
-			await capturedHandlers.onClick['Brickset API Key']?.();
-			// Notice was constructed - just verify no throw
-			expect(true).toBe(true);
-		});
-
-		it('should validate API key when Validate clicked with apiKey set', async () => {
-			const { BricksetApiService } = await import('../bricksetApi');
-			const mockValidateKey = vi.fn().mockResolvedValue(true);
-			vi.mocked(BricksetApiService).mockImplementation(function() {
-				return { validateKey: mockValidateKey, login: vi.fn() } as any;
-			});
-			await capturedHandlers.onClick['Brickset API Key']?.();
-			expect(mockValidateKey).toHaveBeenCalled();
-		});
-
 		it('should attempt login when Login clicked with credentials', async () => {
 			const { BricksetApiService } = await import('../bricksetApi');
 			const mockLogin = vi.fn().mockResolvedValue('new-hash');
@@ -357,12 +332,6 @@ describe('BricksetSettingTab', () => {
 			await capturedHandlers.onClick['Brickset Password']?.();
 			expect(mockLogin).toHaveBeenCalledWith('testuser', 'testpass');
 			expect(plugin.settings.userHash).toBe('new-hash');
-		});
-
-		it('should show notice when Login clicked with no apiKey', async () => {
-			plugin.settings.apiKey = '';
-			// Should not throw
-			await expect(capturedHandlers.onClick['Brickset Password']?.()).resolves.not.toThrow();
 		});
 
 		it('should show notice when Login clicked with no username', async () => {
@@ -388,16 +357,4 @@ describe('BricksetSettingTab', () => {
 		});
 	});
 
-	describe('onClick handlers - invalid API key (line 45)', () => {
-		it('should show invalid notice when validateKey returns false', async () => {
-			const { BricksetApiService } = await import('../bricksetApi');
-			const mockValidateKey = vi.fn().mockResolvedValue(false);
-			vi.mocked(BricksetApiService).mockImplementation(function() {
-				return { validateKey: mockValidateKey, login: vi.fn() } as any;
-			});
-			// Should not throw - Notice is constructed with invalid message
-			await expect(capturedHandlers.onClick['Brickset API Key']?.()).resolves.not.toThrow();
-			expect(mockValidateKey).toHaveBeenCalled();
-		});
-	});
 });

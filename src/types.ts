@@ -179,7 +179,6 @@ export type SyncBehavior = 'create' | 'update' | 'skip';
 
 // Plugin Settings Interface
 export interface BricksetPluginSettings {
-	apiKey: string;
 	username: string;
 	password: string;
 	legoSetsFolder: string;
@@ -201,7 +200,6 @@ export interface BricksetPluginSettings {
 }
 
 export const DEFAULT_SETTINGS: BricksetPluginSettings = {
-	apiKey: '',
 	username: '',
 	password: '',
 	legoSetsFolder: 'LEGO Sets',
