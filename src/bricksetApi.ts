@@ -11,6 +11,9 @@ import {
 	CollectionEntry
 } from './types';
 
+/** Hardcoded Brickset API key used for all requests */
+export const BRICKSET_API_KEY = '3-It8l-c0Wj-WO4ta';
+
 interface SetCollectionParams {
 	own?: 0 | 1;
 	want?: 0 | 1;

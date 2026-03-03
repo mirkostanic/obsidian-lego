@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type { TextComponent } from 'obsidian';
 import BricksetPlugin from './main';
-import { BricksetApiService } from './bricksetApi';
+import { BricksetApiService, BRICKSET_API_KEY } from './bricksetApi';
 import type { SyncBehavior } from './types';
 
 export class BricksetSettingTab extends PluginSettingTab {
@@ -15,10 +15,9 @@ export class BricksetSettingTab extends PluginSettingTab {
 
 	/**
 	 * Return the cached BricksetApiService, creating it if necessary.
-	 * The cache is invalidated whenever the API key changes (see apiKey onChange).
 	 */
 	private getApiService(): BricksetApiService {
-		this.apiService ??= new BricksetApiService(this.plugin.settings.apiKey);
+		this.apiService ??= new BricksetApiService(BRICKSET_API_KEY, this.plugin.settings.userHash);
 		return this.apiService;
 	}
 
@@ -28,7 +27,6 @@ export class BricksetSettingTab extends PluginSettingTab {
 		containerEl.empty();
 		containerEl.createEl('h2', { text: 'Brickset Plugin Settings' });
 
-		this.renderApiKeySection(containerEl);
 		this.renderFolderSection(containerEl);
 		this.renderAuthSection(containerEl);
 		this.renderCollectionSyncSection(containerEl);
@@ -38,35 +36,6 @@ export class BricksetSettingTab extends PluginSettingTab {
 	// -------------------------------------------------------------------------
 	// Section renderers
 	// -------------------------------------------------------------------------
-
-	private renderApiKeySection(containerElement: HTMLElement): void {
-		// API Key setting — invalidate cached service when the key changes
-		this.addTextSetting(
-			containerElement,
-			'Brickset API Key',
-			'Enter your Brickset API key. Get one at https://brickset.com/tools/webservices/requestkey',
-			'Enter your API key',
-			() => this.plugin.settings.apiKey,
-			v => {
-				this.plugin.settings.apiKey = v;
-				this.apiService = null; // invalidate cache on key change
-			}
-		).addButton(button => button
-			.setButtonText('Validate')
-			.onClick(async () => {
-				if (!this.plugin.settings.apiKey) {
-					new Notice('Please enter an API key first');
-					return;
-				}
-				const isValid = await this.getApiService().validateKey();
-				if (isValid) {
-					new Notice('API key is valid!');
-				} else {
-					new Notice('API key is invalid. Please check and try again.');
-				}
-			})
-		);
-	}
 
 	private renderFolderSection(containerElement: HTMLElement): void {
 		this.addTextSetting(
@@ -80,7 +49,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 	}
 
 	private renderAuthSection(containerElement: HTMLElement): void {
-		containerElement.createEl('h3', { text: 'Optional: User Authentication' });
+		containerElement.createEl('h3', { text: 'User Authentication' });
 		containerElement.createEl('p', {
 			text: 'Provide your Brickset credentials to access personalized features (collection, wishlist, etc.)',
 			cls: 'setting-item-description',
@@ -121,10 +90,6 @@ export class BricksetSettingTab extends PluginSettingTab {
 	 * Persists the returned userHash on success; shows a Notice on any failure.
 	 */
 	private async handleLoginClick(): Promise<void> {
-		if (!this.plugin.settings.apiKey) {
-			new Notice('Please enter an API key first');
-			return;
-		}
 		if (!this.plugin.settings.username || !this.plugin.settings.password) {
 			new Notice('Please enter both username and password');
 			return;
@@ -135,6 +100,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 				this.plugin.settings.password
 			);
 			this.plugin.settings.userHash = userHash;
+			this.apiService = null; // invalidate cache so next call uses new userHash
 			await this.plugin.saveSettings();
 			new Notice('Successfully logged in!');
 		} catch (error) {
