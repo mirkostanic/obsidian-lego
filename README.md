@@ -30,25 +30,13 @@ An Obsidian plugin that integrates with the Brickset API to fetch LEGO set infor
 
 ## Setup
 
-### 1. Get a Brickset API Key
-
-1. Visit [Brickset API Key Request](https://brickset.com/tools/webservices/requestkey)
-2. Fill out the form with your details:
-   - Name
-   - Email address
-   - Website/Application name (e.g., "Obsidian Personal Vault")
-   - Brief description of intended use
-3. Submit the form
-4. Check your email for the API key (usually arrives within minutes)
-
-### 2. Configure the Plugin
+### 1. Configure the Plugin
 
 1. Open Obsidian Settings
 2. Navigate to Plugin Options → Brickset
-3. Enter your API key in the "Brickset API Key" field
-4. (Optional) Configure the folder where LEGO set notes will be created
-5. (Optional) Enter your Brickset username and password for personalized features
-6. Click "Save Settings"
+3. (Optional) Configure the folder where LEGO set notes will be created
+4. (Optional) Enter your Brickset username and password for personalized features
+5. Click "Save Settings"
 
 The plugin will automatically validate your API key when you save.
 
