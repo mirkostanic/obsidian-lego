@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-lego",
-	"name": "Brickset LEGO Sets",
-	"version": "0.3.0",
+	"id": "brickset-lego",
+	"name": "Brickset LEGO",
+	"version": "0.4.0",
 	"minAppVersion": "1.9.7",
-	"description": "Fetch LEGO set information from Brickset API and create formatted notes with set details and images.",
+	"description": "Fetches LEGO set information from Brickset API and creates formatted notes with set details and images.",
 	"author": "Mirko Stanić",
 	"authorUrl": "https://github.com/mirkostanic/obsidian-lego",
 	"isDesktopOnly": false
