@@ -24,7 +24,7 @@ An Obsidian plugin that integrates with the Brickset API to fetch LEGO set infor
 ### Manual Installation
 
 1. Download the latest release from GitHub
-2. Extract the files to your vault's `.obsidian/plugins/obsidian-lego/` folder
+2. Extract the files to your vault's `.obsidian/plugins/brickset-lego/` folder
 3. Reload Obsidian
 4. Enable the plugin in Settings → Community Plugins
 
@@ -147,7 +147,7 @@ pieces: 7541
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/obsidian-lego.git
+git clone https://github.com/mirkostanic/obsidian-lego.git
 cd obsidian-lego
 
 # Install dependencies
