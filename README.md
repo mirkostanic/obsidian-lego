@@ -1,4 +1,4 @@
-# Obsidian LEGO Plugin
+# Brickset LEGO Plugin
 
 An Obsidian plugin that integrates with the Brickset API to fetch LEGO set information and formatted notes with set details and images.
 
@@ -193,9 +193,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support
 
-- 📖 [Documentation](https://github.com/mirkostanic/obsidian-lego/wiki)
-- 🐛 [Report Issues](https://github.com/mirkostanic/obsidian-lego/issues)
-- 💬 [Discussions](https://github.com/mirkostanic/obsidian-lego/discussions)
+- [Documentation](https://github.com/mirkostanic/obsidian-lego/wiki)
+- [Report Issues](https://github.com/mirkostanic/obsidian-lego/issues)
+- [Discussions](https://github.com/mirkostanic/obsidian-lego/discussions)
 
 ## Credits
 

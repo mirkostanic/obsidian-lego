@@ -417,8 +417,7 @@ export class BricksetApiService {
 			if (error instanceof BricksetApiError) {
 				throw error;
 			}
-			// Don't throw error for missing images, just return empty array
-			console.warn(`Failed to fetch additional images for set [setID=${setID}]:`, error);
+			// Don't throw for network/API noise; caller proceeds without extra images
 			return [];
 		}
 	}

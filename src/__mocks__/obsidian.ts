@@ -57,10 +57,12 @@ export class App {
 			write: vi.fn().mockResolvedValue(undefined)
 		},
 		getAbstractFileByPath: vi.fn().mockReturnValue(null),
+		getFileByPath: vi.fn().mockReturnValue(null),
 		create: vi.fn().mockResolvedValue(undefined),
 		createBinary: vi.fn().mockResolvedValue(undefined),
 		createFolder: vi.fn().mockResolvedValue(undefined),
 		modify: vi.fn().mockResolvedValue(undefined),
+		process: vi.fn().mockImplementation(async (_f: unknown, fn: (d: string) => string) => fn('')),
 		read: vi.fn().mockResolvedValue('')
 	};
 	metadataCache = {

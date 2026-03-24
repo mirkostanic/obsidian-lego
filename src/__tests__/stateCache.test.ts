@@ -2,25 +2,24 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { App } from 'obsidian';
 import { StateCache, CachedState } from '../stateCache';
 
-interface MockVaultAdapter {
-	exists: ReturnType<typeof vi.fn>;
-	read:   ReturnType<typeof vi.fn>;
-	write:  ReturnType<typeof vi.fn>;
+interface MockVault {
+	getFileByPath: ReturnType<typeof vi.fn>;
+	read: ReturnType<typeof vi.fn>;
+	process: ReturnType<typeof vi.fn>;
+	create: ReturnType<typeof vi.fn>;
 }
 
 interface MockApp {
-	vault: { adapter: MockVaultAdapter };
+	vault: MockVault;
 }
 
-// Create a mock App for testing
-function createMockApp(fileExists = false, fileContent = '{}'): MockApp {
+function createMockApp(): MockApp {
 	return {
 		vault: {
-			adapter: {
-				exists: vi.fn().mockResolvedValue(fileExists),
-				read:   vi.fn().mockResolvedValue(fileContent),
-				write:  vi.fn().mockResolvedValue(undefined)
-			}
+			getFileByPath: vi.fn().mockReturnValue(null),
+			read: vi.fn().mockResolvedValue('{}'),
+			process: vi.fn().mockImplementation(async (_f: unknown, fn: (d: string) => string) => fn('{}')),
+			create: vi.fn().mockResolvedValue(undefined)
 		}
 	};
 }
@@ -36,9 +35,10 @@ describe('StateCache', () => {
 
 	describe('load()', () => {
 		it('should initialize empty cache when file does not exist', async () => {
-			app.vault.adapter.exists.mockResolvedValue(false);
+			app.vault.getFileByPath.mockReturnValue(null);
 			await cache.load();
 			expect(cache.size()).toBe(0);
+			expect(app.vault.read).not.toHaveBeenCalled();
 		});
 
 		it('should load cache from file when it exists', async () => {
@@ -51,8 +51,9 @@ describe('StateCache', () => {
 					lastModified: 1000000
 				}
 			};
-			app.vault.adapter.exists.mockResolvedValue(true);
-			app.vault.adapter.read.mockResolvedValue(JSON.stringify(mockData));
+			const stubFile = { path: '.obsidian/plugins/brickset/state-cache.json' };
+			app.vault.getFileByPath.mockReturnValue(stubFile);
+			app.vault.read.mockResolvedValue(JSON.stringify(mockData));
 
 			await cache.load();
 
@@ -61,11 +62,13 @@ describe('StateCache', () => {
 			expect(state?.setID).toBe(12345);
 			expect(state?.owned).toBe(true);
 			expect(state?.qtyOwned).toBe(2);
+			expect(app.vault.read).toHaveBeenCalledWith(stubFile);
 		});
 
 		it('should handle corrupt cache file gracefully', async () => {
-			app.vault.adapter.exists.mockResolvedValue(true);
-			app.vault.adapter.read.mockResolvedValue('invalid json {{{');
+			const stubFile = { path: '.obsidian/plugins/brickset/state-cache.json' };
+			app.vault.getFileByPath.mockReturnValue(stubFile);
+			app.vault.read.mockResolvedValue('invalid json {{{');
 
 			await cache.load();
 
@@ -76,10 +79,12 @@ describe('StateCache', () => {
 	describe('save()', () => {
 		it('should not write to disk if cache is not dirty', async () => {
 			await cache.save();
-			expect(app.vault.adapter.write).not.toHaveBeenCalled();
+			expect(app.vault.create).not.toHaveBeenCalled();
+			expect(app.vault.process).not.toHaveBeenCalled();
 		});
 
-		it('should write to disk when cache is dirty', async () => {
+		it('should create cache file when dirty and no file exists yet', async () => {
+			app.vault.getFileByPath.mockReturnValue(null);
 			cache.set('test.md', {
 				setID: 1,
 				owned: false,
@@ -89,19 +94,41 @@ describe('StateCache', () => {
 
 			await cache.save();
 
-			expect(app.vault.adapter.write).toHaveBeenCalledOnce();
-			const [path, content] = app.vault.adapter.write.mock.calls[0];
+			expect(app.vault.create).toHaveBeenCalledOnce();
+			expect(app.vault.process).not.toHaveBeenCalled();
+			const [path, content] = app.vault.create.mock.calls[0];
 			expect(path).toContain('state-cache.json');
 			const parsed = JSON.parse(content);
 			expect(parsed['test.md'].setID).toBe(1);
 		});
 
+		it('should process existing cache file when dirty', async () => {
+			const stubFile = { path: '.obsidian/plugins/brickset/state-cache.json' };
+			app.vault.getFileByPath.mockReturnValue(stubFile);
+			cache.set('test.md', {
+				setID: 1,
+				owned: false,
+				wanted: false,
+				lastModified: Date.now()
+			});
+
+			await cache.save();
+
+			expect(app.vault.process).toHaveBeenCalledOnce();
+			expect(app.vault.process).toHaveBeenCalledWith(stubFile, expect.any(Function));
+			expect(app.vault.create).not.toHaveBeenCalled();
+			const [, fn] = app.vault.process.mock.calls[0] as [unknown, (d: string) => string];
+			const parsed = JSON.parse(fn('ignored'));
+			expect(parsed['test.md'].setID).toBe(1);
+		});
+
 		it('should not write again if already saved', async () => {
+			app.vault.getFileByPath.mockReturnValue(null);
 			cache.set('test.md', { setID: 1, owned: false, wanted: false, lastModified: 0 });
 			await cache.save();
 			await cache.save(); // Second save should be skipped
 
-			expect(app.vault.adapter.write).toHaveBeenCalledOnce();
+			expect(app.vault.create).toHaveBeenCalledOnce();
 		});
 	});
 
@@ -136,14 +163,12 @@ describe('StateCache', () => {
 			expect(cache.has('test.md')).toBe(false);
 		});
 
-		it('should mark cache as dirty when deleting existing entry', () => {
+		it('should mark cache as dirty when deleting existing entry', async () => {
+			app.vault.getFileByPath.mockReturnValue(null);
 			cache.set('test.md', { setID: 1, owned: false, wanted: false, lastModified: 0 });
-			// Save to clear dirty flag
-			// Note: we can't easily test isDirty directly, but we can test behavior
 			cache.delete('test.md');
-			// After delete, save should write
-			cache.save();
-			expect(app.vault.adapter.write).toHaveBeenCalled();
+			await cache.save();
+			expect(app.vault.create).toHaveBeenCalled();
 		});
 	});
 
@@ -204,20 +229,18 @@ describe('StateCache', () => {
 });
 
 describe('StateCache - save() error handling', () => {
-	it('should log error and not throw when write fails', async () => {
+	it('should log error and not throw when create fails', async () => {
 		const app = {
 			vault: {
-				adapter: {
-					exists: vi.fn().mockResolvedValue(false),
-					read: vi.fn().mockResolvedValue('{}'),
-					write: vi.fn().mockRejectedValue(new Error('Disk full'))
-				}
+				getFileByPath: vi.fn().mockReturnValue(null),
+				read: vi.fn(),
+				process: vi.fn(),
+				create: vi.fn().mockRejectedValue(new Error('Disk full'))
 			}
 		};
 		const cache = new StateCache(app as unknown as App, '.obsidian/plugins/brickset');
 		cache.set('test.md', { setID: 1, owned: false, wanted: false, lastModified: 0 });
 
-		// Should not throw even when write fails
 		await expect(cache.save()).resolves.toBeUndefined();
 	});
 });
@@ -226,21 +249,19 @@ describe('StateCache - delete() branch (line 85)', () => {
 	it('should not set isDirty when deleting a non-existent key', async () => {
 		const app = {
 			vault: {
-				adapter: {
-					exists: vi.fn().mockResolvedValue(false),
-					read: vi.fn().mockResolvedValue('{}'),
-					write: vi.fn().mockResolvedValue(undefined)
-				}
+				getFileByPath: vi.fn().mockReturnValue(null),
+				read: vi.fn().mockResolvedValue('{}'),
+				process: vi.fn(),
+				create: vi.fn().mockResolvedValue(undefined)
 			}
 		};
 		const cache = new StateCache(app as unknown as App, '.obsidian/plugins/brickset');
 		await cache.load();
 
-		// Delete a key that was never set → Map.delete returns false → isDirty stays false
 		cache.delete('non-existent-key.md');
 
-		// save() should not write because isDirty is false
 		await cache.save();
-		expect(app.vault.adapter.write).not.toHaveBeenCalled();
+		expect(app.vault.create).not.toHaveBeenCalled();
+		expect(app.vault.process).not.toHaveBeenCalled();
 	});
 });

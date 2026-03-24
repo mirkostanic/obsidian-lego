@@ -31,27 +31,33 @@ export default class BricksetPlugin extends Plugin {
 			);
 		}, 60_000);
 
+		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
+			if (!(file instanceof TFile)) return;
+			if (!this.settings.enableBidirectionalSync || !this.syncBackService) return;
+			void this.syncBackService.onMetadataChanged(file);
+		}));
+
 		// Add settings tab
 		this.addSettingTab(new BricksetSettingTab(this.app, this));
 
 		// Register command to fetch LEGO set
 		this.addCommand({
 			id: 'fetch-lego-set',
-			name: 'Fetch LEGO Set',
+			name: 'Fetch LEGO set',
 			callback: () => this.showSetNumberModal(),
 		});
 
 		// Register command to sync collection
 		this.addCommand({
 			id: 'sync-collection',
-			name: 'Sync LEGO Collection from Brickset',
+			name: 'Sync LEGO collection from Brickset',
 			callback: () => this.syncCollection(),
 		});
 
 		// Register command to manually sync current note
 		this.addCommand({
 			id: 'sync-current-note',
-			name: 'Sync Current Note to Brickset',
+			name: 'Sync current note to Brickset',
 			checkCallback: (checking: boolean) => {
 				const file = this.app.workspace.getActiveFile();
 				if (file) {
@@ -73,8 +79,6 @@ export default class BricksetPlugin extends Plugin {
 		if (this.settings.enableBidirectionalSync) {
 			this.startSyncBack();
 		}
-
-		console.log('Brickset plugin loaded');
 	}
 
 	onunload() {
@@ -90,8 +94,6 @@ export default class BricksetPlugin extends Plugin {
 				console.error('Brickset plugin: failed to save state cache on unload', err);
 			});
 		}
-
-		console.log('Brickset plugin unloaded');
 	}
 
 	async loadSettings() {
@@ -170,7 +172,7 @@ export default class BricksetPlugin extends Plugin {
 				if (error.apiStatus === 'not_found') {
 					new Notice(`Set ${setNumber} not found. Please check the set number and try again.`);
 				} else {
-					new Notice(`API Error: ${error.message}`);
+					new Notice(`API error: ${error.message}`);
 				}
 			} else {
 				new Notice(`Error: ${error.message}`);
@@ -294,7 +296,6 @@ export default class BricksetPlugin extends Plugin {
 		*/
 	startSyncBack(): void {
 		if (!this.settings.userHash) {
-			console.warn('Cannot start bidirectional sync: user hash not configured');
 			return;
 		}
 
@@ -314,7 +315,6 @@ export default class BricksetPlugin extends Plugin {
 		}
 
 		this.syncBackService.startWatching();
-		console.log('Bidirectional sync started');
 	}
 
 	/**
@@ -323,7 +323,6 @@ export default class BricksetPlugin extends Plugin {
 	stopSyncBack(): void {
 		if (this.syncBackService) {
 			this.syncBackService.stopWatching();
-			console.log('Bidirectional sync stopped');
 		}
 	}
 

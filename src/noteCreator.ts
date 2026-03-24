@@ -116,10 +116,14 @@ export class NoteCreator {
 		additionalImages: AdditionalImage[],
 		imagesFolderPath: string
 	): Promise<string[]> {
-		const downloads = additionalImages.map((img, i) =>
-			this.downloadImage(img.imageURL, imagesFolderPath, `additional-${i + 1}.jpg`)
-				.then(path => path ? `images/additional-${i + 1}.jpg` : null)
-		);
+		const downloads = additionalImages.map(async (img, i) => {
+			const path = await this.downloadImage(
+				img.imageURL,
+				imagesFolderPath,
+				`additional-${i + 1}.jpg`
+			);
+			return path ? `images/additional-${i + 1}.jpg` : null;
+		});
 		const results = await Promise.all(downloads);
 		return results.filter((p): p is string => p !== null);
 	}
@@ -130,7 +134,7 @@ export class NoteCreator {
 	private async writeNoteFile(filePath: string, content: string, label: string): Promise<void> {
 		const existingFile = this.app.vault.getAbstractFileByPath(filePath);
 		if (existingFile instanceof TFile) {
-			await this.app.vault.modify(existingFile, content);
+			await this.app.vault.process(existingFile, () => content);
 			new Notice(`Updated: ${label}`);
 			return;
 		}
@@ -146,7 +150,7 @@ export class NoteCreator {
 			// File was created by another process — update it
 			const fileNow = this.app.vault.getAbstractFileByPath(filePath);
 			if (fileNow instanceof TFile) {
-				await this.app.vault.modify(fileNow, content);
+				await this.app.vault.process(fileNow, () => content);
 				new Notice(`Updated: ${label}`);
 			} else {
 				throw error;
@@ -180,7 +184,6 @@ export class NoteCreator {
 
 			const contentType = response.headers?.['content-type'] ?? '';
 			if (contentType && !contentType.startsWith('image/')) {
-				console.warn('Skipping non-image response (%s) from %s', contentType, imageUrl);
 				return null;
 			}
 

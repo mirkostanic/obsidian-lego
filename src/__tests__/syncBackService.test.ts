@@ -40,6 +40,10 @@ function createMockApp() {
 				read: vi.fn().mockResolvedValue('{}'),
 				write: vi.fn().mockResolvedValue(undefined)
 			},
+			getFileByPath: vi.fn().mockReturnValue(null),
+			read: vi.fn().mockResolvedValue('{}'),
+			process: vi.fn().mockImplementation(async (_f: unknown, fn: (d: string) => string) => fn('{}')),
+			create: vi.fn().mockResolvedValue(undefined),
 			getAbstractFileByPath: vi.fn().mockReturnValue(null)
 		},
 		metadataCache: {
@@ -260,7 +264,7 @@ describe('SyncBackService - detectChanges()', () => {
 	});
 });
 
-describe('SyncBackService - startWatching/stopWatching', () => {
+describe('SyncBackService - lifecycle', () => {
 	let app: MockApp;
 	let stateCache: StateCache;
 	let apiService: BricksetApiService;
@@ -279,20 +283,13 @@ describe('SyncBackService - startWatching/stopWatching', () => {
 		});
 	});
 
-	it('should register metadata change listener when startWatching is called', () => {
+	it('does not register a metadata listener (plugin owns it via registerEvent)', () => {
 		service.startWatching();
-		expect(app.metadataCache.on).toHaveBeenCalledWith('changed', expect.any(Function));
+		expect(app.metadataCache.on).not.toHaveBeenCalled();
 	});
 
-	it('should not register listener twice if already watching', () => {
-		service.startWatching();
-		service.startWatching(); // Second call should be ignored
-		expect(app.metadataCache.on).toHaveBeenCalledOnce();
-	});
-
-	it('should unregister listener when stopWatching is called', () => {
-		service.startWatching();
-		service.stopWatching();
-		expect(app.metadataCache.offref).toHaveBeenCalled();
+	it('stopWatching clears without calling metadataCache.offref', () => {
+		expect(() => service.stopWatching()).not.toThrow();
+		expect(app.metadataCache.offref).not.toHaveBeenCalled();
 	});
 });
