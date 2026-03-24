@@ -158,6 +158,18 @@ npm run build
 
 # Development mode (auto-rebuild on changes)
 npm run dev
+
+# Run tests
+npm run test
+
+# Run tests and show coverage
+npm run test:coverage
+
+# Run lint
+npm run lint
+
+# Run lint and attempt fix
+npm run lint:fix
 ```
 
 ### Project Structure

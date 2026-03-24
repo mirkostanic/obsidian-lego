@@ -1,6 +1,6 @@
 import { App, TFile, Notice } from 'obsidian';
 import { BricksetApiService } from './bricksetApi';
-import { StateCache } from './stateCache';
+import { StateCache, type LegoSetFrontmatter } from './stateCache';
 import { BricksetPluginSettings } from './types';
 
 /**
@@ -80,7 +80,7 @@ export class SyncBackService {
 	 */
 	private detectChanges(
 		file: TFile,
-		frontmatter: any
+		frontmatter: LegoSetFrontmatter
 	): FrontmatterChange | null {
 		// Get previous state from cache
 		const previousState = this.stateCache.get(file.path);
@@ -94,10 +94,11 @@ export class SyncBackService {
 
 		const { owned: prevOwned, wanted: prevWanted, qtyOwned: prevQtyOwned, userRating: prevRating } = previousState;
 
-		const currentOwned    = frontmatter.owned    || false;
-		const currentWanted   = frontmatter.wanted   || false;
-		const currentQtyOwned = frontmatter.qtyOwned || 0;
-		const currentRating   = frontmatter.userRating;
+		const currentOwned    = Boolean(frontmatter['owned']);
+		const currentWanted   = Boolean(frontmatter['wanted']);
+		const currentQtyOwned = Number(frontmatter['qtyOwned']) || 0;
+		const ratingRaw = frontmatter['userRating'];
+		const currentRating = typeof ratingRaw === 'number' ? ratingRaw : undefined;
 
 		const changes: FrontmatterChange['changes'] = {};
 
@@ -111,7 +112,13 @@ export class SyncBackService {
 
 		if (Object.keys(changes).length === 0) return null;
 
-		return { file, setID: frontmatter.setID, changes, timestamp: Date.now() };
+		// onMetadataChanged already ensures setID is a number before calling detectChanges.
+		return {
+			file,
+			setID: frontmatter['setID'] as number,
+			changes,
+			timestamp: Date.now()
+		};
 	}
 
 	/**
@@ -146,7 +153,7 @@ export class SyncBackService {
 		}
 
 		this.processingTimer = setTimeout(() => {
-			this.processQueue();
+			void this.processQueue();
 		}, this.settings.syncDebounceMs || 2000);
 	}
 
@@ -259,16 +266,19 @@ export class SyncBackService {
 		}
 
 		// Build flags from current frontmatter
-		const flags: any = {
-			own: cache.frontmatter.owned || false,
-			want: cache.frontmatter.wanted || false
+		const fm = cache.frontmatter as LegoSetFrontmatter;
+		const flags: Parameters<BricksetApiService['setUserFlags']>[1] = {
+			own: Boolean(fm['owned']),
+			want: Boolean(fm['wanted'])
 		};
 
-		if (cache.frontmatter.qtyOwned !== undefined) {
-			flags.qtyOwned = cache.frontmatter.qtyOwned;
+		const qtyOwned = fm['qtyOwned'];
+		if (qtyOwned !== undefined && typeof qtyOwned === 'number') {
+			flags.qtyOwned = qtyOwned;
 		}
-		if (cache.frontmatter.userRating !== undefined) {
-			flags.rating = cache.frontmatter.userRating;
+		const userRating = fm['userRating'];
+		if (userRating !== undefined && typeof userRating === 'number') {
+			flags.rating = userRating;
 		}
 
 		const success = await this.apiService.setUserFlags(setID, flags);

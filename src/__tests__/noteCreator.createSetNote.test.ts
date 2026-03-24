@@ -709,7 +709,6 @@ describe('NoteCreator - ensureBaseFile() with non-Error thrown', () => {
 
 	it('should re-throw when a non-Error is thrown during .base file creation', async () => {
 		app.vault.getAbstractFileByPath.mockReturnValue(null);
-		// eslint-disable-next-line @typescript-eslint/no-throw-literal
 		app.vault.create.mockRejectedValue('base file error without message');
 
 		await expect(creator.ensureBaseFile()).rejects.toBe('base file error without message');
@@ -742,7 +741,6 @@ describe('NoteCreator - ensureFolderExists() uncovered branches', () => {
 		const set = makeSet();
 		// createFolder throws a non-Error object (no .message)
 		app.vault.createFolder.mockImplementation(() => {
-			// eslint-disable-next-line @typescript-eslint/no-throw-literal
 			throw 'folder creation failed';
 		});
 		// After the error, getAbstractFileByPath returns null → re-throw
@@ -754,9 +752,7 @@ describe('NoteCreator - ensureFolderExists() uncovered branches', () => {
 	it('should not throw when createFolder fails but folderNow is a TFolder (line 505 false branch)', async () => {
 		const set = makeSet();
 		// Track how many times createFolder has been called
-		let createFolderCallCount = 0;
 		app.vault.createFolder.mockImplementation(async () => {
-			createFolderCallCount++;
 			throw new Error('Race condition');
 		});
 
@@ -828,7 +824,6 @@ describe('NoteCreator - uncovered branch coverage', () => {
 		// vault.create throws a non-Error object (no .message property)
 		app.vault.create.mockImplementation((path: string) => {
 			if (path.endsWith('.md')) {
-				// eslint-disable-next-line @typescript-eslint/no-throw-literal
 				throw 'string error without message';
 			}
 			return Promise.resolve(undefined);
@@ -847,7 +842,6 @@ describe('NoteCreator - uncovered branch coverage', () => {
 
 		// createBinary throws a non-Error object (no .message) → String(error) used
 		app.vault.createBinary.mockImplementation(() => {
-			// eslint-disable-next-line @typescript-eslint/no-throw-literal
 			throw 'binary error without message';
 		});
 
