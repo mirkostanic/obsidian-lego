@@ -21,7 +21,7 @@ const settingInstances: any[] = [];
 // Mock obsidian before importing modal
 vi.mock('obsidian', () => {
 	// Minimal DOM-like element mock
-	function createEl(tag: string, opts?: { text?: string; cls?: string; id?: string }) {
+	function createEl(tag: string, opts?: { text?: string; cls?: string; id?: string; attr?: Record<string, string> }) {
 		const el: any = {
 			_tag: tag,
 			_text: opts?.text || '',
@@ -29,7 +29,15 @@ vi.mock('obsidian', () => {
 			id: opts?.id || '',
 			textContent: opts?.text || '',
 			innerHTML: '',
-			style: {},
+			style: {
+				_vars: {} as Record<string, string>,
+				setProperty(name: string, value: string) {
+					this._vars[name] = value;
+				},
+				getPropertyValue(name: string) {
+					return this._vars[name] ?? '';
+				}
+			},
 			children: [] as any[],
 			_eventListeners: {} as Record<string, Function[]>,
 			addEventListener: vi.fn((event: string, handler: Function) => {
@@ -41,7 +49,7 @@ vi.mock('obsidian', () => {
 			},
 			appendChild: vi.fn((child: any) => { el.children.push(child); return child; }),
 			appendText: vi.fn((text: string) => { el.textContent += text; }),
-			createEl: vi.fn((t: string, o?: any) => {
+			createEl: vi.fn((t: string, o?: { text?: string; cls?: string; attr?: Record<string, string> }) => {
 				const child = createEl(t, o);
 				el.children.push(child);
 				return child;
@@ -59,6 +67,11 @@ vi.mock('obsidian', () => {
 			querySelector: vi.fn().mockReturnValue(null),
 			disabled: false
 		};
+		if (tag === 'progress') {
+			const attr = opts?.attr ?? {};
+			el.value = Number.parseInt(attr.value ?? '0', 10);
+			el.max = Number.parseInt(attr.max ?? '1', 10);
+		}
 		return el;
 	}
 
@@ -77,6 +90,7 @@ vi.mock('obsidian', () => {
 		}
 		setName = vi.fn().mockReturnThis();
 		setDesc = vi.fn().mockReturnThis();
+		setHeading = vi.fn().mockReturnThis();
 		addText = vi.fn().mockImplementation((cb: any) => {
 			const textComp = {
 				setPlaceholder: vi.fn().mockReturnThis(),
@@ -146,6 +160,12 @@ vi.mock('obsidian', () => {
 });
 
 import { SetNumberModal, SyncModal } from '../modal';
+
+function getTextSettingFromModal(modal: SetNumberModal): any {
+	const inst = settingInstances.find((s: any) => s.addText.mock.calls.length > 0);
+	expect(inst).toBeDefined();
+	return inst;
+}
 
 function getStatsText(modal: SyncModal): string {
 	// After refactor, updateStats builds child divs via createDiv.
@@ -226,9 +246,7 @@ describe('SetNumberModal', () => {
 			settingInstances.length = 0;
 			modal.onOpen();
 
-			// settingInstances[0] is the "Set Number" Setting (has addText)
-			const textSetting = settingInstances[0];
-			expect(textSetting).toBeDefined();
+			const textSetting = getTextSettingFromModal(modal);
 
 			// The addText mock was called with a callback; re-invoke it to capture onChange
 			let capturedOnChange: ((v: string) => void) | null = null;
@@ -253,7 +271,7 @@ describe('SetNumberModal', () => {
 			settingInstances.length = 0;
 			modal.onOpen();
 
-			const textSetting = settingInstances[0];
+			const textSetting = getTextSettingFromModal(modal);
 			const addTextCb = textSetting.addText.mock.calls[0][0];
 
 			let capturedKeydownHandler: ((e: any) => void) | null = null;
@@ -282,7 +300,7 @@ describe('SetNumberModal', () => {
 			settingInstances.length = 0;
 			modal.onOpen();
 
-			const textSetting = settingInstances[0];
+			const textSetting = getTextSettingFromModal(modal);
 			const addTextCb = textSetting.addText.mock.calls[0][0];
 
 			let capturedKeydownHandler: ((e: any) => void) | null = null;
@@ -371,19 +389,22 @@ describe('SyncModal', () => {
 	});
 
 	describe('updateProgress()', () => {
-		it('should set progress bar width to correct percentage', () => {
+		it('should set native progress value and max', () => {
 			modal.updateProgress(5, 10);
-			expect((modal as any).progressBar.style.width).toBe('50%');
+			expect((modal as any).progressBar.value).toBe(5);
+			expect((modal as any).progressBar.max).toBe(10);
 		});
 
-		it('should set progress bar to 100% when complete', () => {
+		it('should set progress to complete when current equals total', () => {
 			modal.updateProgress(10, 10);
-			expect((modal as any).progressBar.style.width).toBe('100%');
+			expect((modal as any).progressBar.value).toBe(10);
+			expect((modal as any).progressBar.max).toBe(10);
 		});
 
-		it('should set progress bar to 0% when total is 0', () => {
+		it('should use max 1 when total is 0', () => {
 			modal.updateProgress(0, 0);
-			expect((modal as any).progressBar.style.width).toBe('0%');
+			expect((modal as any).progressBar.value).toBe(0);
+			expect((modal as any).progressBar.max).toBe(1);
 		});
 
 		it('should update status text with progress info', () => {
@@ -417,11 +438,11 @@ describe('SyncModal', () => {
 			expect(text).toContain('1');
 		});
 
-		it('should show Created, Updated, Skipped, Failed labels', () => {
+		it('should show new, updated, skipped, and failed labels', () => {
 			modal.updateStats(1, 2, 3, 4);
 			const text = getStatsText(modal);
-			expect(text).toContain('Created');
-			expect(text).toContain('Updated');
+			expect(text).toContain('New notes');
+			expect(text).toContain('Updated notes');
 			expect(text).toContain('Skipped');
 			expect(text).toContain('Failed');
 		});
@@ -552,7 +573,7 @@ describe('SyncModal', () => {
 			clickHandler();
 
 			expect(cancelButton.disabled).toBe(true);
-			expect(cancelButton.textContent).toBe('Cancelling...');
+			expect(cancelButton.textContent).toBe('Cancelling…');
 		});
 	});
 });

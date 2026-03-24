@@ -26,8 +26,8 @@ vi.mock('obsidian', async (importOriginal) => {
  * Expose private methods for testing
  */
 class TestableSyncBackService extends SyncBackService {
-	public testHandleFileChange(file: any): Promise<void> {
-		return (this as any).handleFileChange(file);
+	public testOnMetadataChanged(file: any): Promise<void> {
+		return this.onMetadataChanged(file);
 	}
 
 	public testSyncToApi(change: any): Promise<void> {
@@ -59,6 +59,10 @@ function createMockApp() {
 				read: vi.fn().mockResolvedValue('{}'),
 				write: vi.fn().mockResolvedValue(undefined)
 			},
+			getFileByPath: vi.fn().mockReturnValue(null),
+			read: vi.fn().mockResolvedValue('{}'),
+			process: vi.fn().mockImplementation(async (_f: unknown, fn: (d: string) => string) => fn('{}')),
+			create: vi.fn().mockResolvedValue(undefined),
 			getAbstractFileByPath: vi.fn().mockReturnValue(null)
 		},
 		metadataCache: {
@@ -92,7 +96,7 @@ function makeSettings(overrides = {}) {
 	};
 }
 
-describe('SyncBackService - handleFileChange()', () => {
+describe('SyncBackService - onMetadataChanged()', () => {
 	let app: any;
 	let stateCache: StateCache;
 	let apiService: BricksetApiService;
@@ -115,7 +119,7 @@ describe('SyncBackService - handleFileChange()', () => {
 		const file = createMockFile('some-random-note.md');
 		app.metadataCache.getFileCache.mockReturnValue(null);
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		// No changes queued
 		expect(service.getChangeQueue().size).toBe(0);
@@ -127,7 +131,7 @@ describe('SyncBackService - handleFileChange()', () => {
 			frontmatter: { tags: ['other-tag'], setID: 123 }
 		});
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		expect(service.getChangeQueue().size).toBe(0);
 	});
@@ -139,7 +143,7 @@ describe('SyncBackService - handleFileChange()', () => {
 			// No setID
 		});
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		expect(service.getChangeQueue().size).toBe(0);
 	});
@@ -150,7 +154,7 @@ describe('SyncBackService - handleFileChange()', () => {
 			frontmatter: { tags: ['lego', 'set'], setID: 'not-a-number', owned: true }
 		});
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		expect(service.getChangeQueue().size).toBe(0);
 	});
@@ -161,7 +165,7 @@ describe('SyncBackService - handleFileChange()', () => {
 			frontmatter: { tags: ['lego', 'set'], setID: 23351, owned: true, wanted: false, qtyOwned: 1 }
 		});
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		// No change queued (first time = cache only)
 		expect(service.getChangeQueue().size).toBe(0);
@@ -180,7 +184,7 @@ describe('SyncBackService - handleFileChange()', () => {
 			frontmatter: { tags: ['lego', 'set'], setID: 23351, owned: true, wanted: false, qtyOwned: 0 }
 		});
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		expect(service.getChangeQueue().size).toBe(1);
 		const change = service.getChangeQueue().get(file.path);
@@ -198,7 +202,7 @@ describe('SyncBackService - handleFileChange()', () => {
 			frontmatter: { tags: ['lego', 'set'], setID: 23351, owned: true, wanted: false, qtyOwned: 2 }
 		});
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		expect(service.getChangeQueue().size).toBe(0);
 	});
@@ -212,7 +216,7 @@ describe('SyncBackService - handleFileChange()', () => {
 		app.metadataCache.getFileCache.mockReturnValue({
 			frontmatter: { tags: ['lego', 'set'], setID: 23351, owned: true, wanted: false, qtyOwned: 0 }
 		});
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		// Update cache to reflect first change
 		stateCache.set(file.path, { setID: 23351, owned: true, wanted: false, qtyOwned: 0, lastModified: 0 });
@@ -221,7 +225,7 @@ describe('SyncBackService - handleFileChange()', () => {
 		app.metadataCache.getFileCache.mockReturnValue({
 			frontmatter: { tags: ['lego', 'set'], setID: 23351, owned: true, wanted: true, qtyOwned: 0 }
 		});
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		// Still only one entry in queue (overwritten)
 		expect(service.getChangeQueue().size).toBe(1);
@@ -822,7 +826,7 @@ describe('SyncBackService - syncFile() additional paths', () => {
 		await expect(service.syncFile(file)).rejects.toThrow('Not a LEGO set note');
 	});
 });
-describe('SyncBackService - handleFileChange() no-frontmatter path (lines 88-89)', () => {
+describe('SyncBackService - onMetadataChanged() no-frontmatter path (lines 88-89)', () => {
 	let app: any;
 	let stateCache: StateCache;
 	let apiService: BricksetApiService;
@@ -844,12 +848,12 @@ describe('SyncBackService - handleFileChange() no-frontmatter path (lines 88-89)
 	it('should return early when isLegoSetNote passes but second getFileCache has no frontmatter (lines 88-89)', async () => {
 		const file = createMockFile('LEGO Sets/75192.md');
 		// First call: isLegoSetNote → has tags+setID → returns true
-		// Second call: handleFileChange's own getFileCache → no frontmatter
+		// Second call: onMetadataChanged's own getFileCache → no frontmatter
 		app.metadataCache.getFileCache
 			.mockReturnValueOnce({ frontmatter: { tags: ['lego', 'set'], setID: 23351 } })
 			.mockReturnValueOnce(null);
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		// No change queued — returned early at line 89
 		expect(service.getChangeQueue().size).toBe(0);
@@ -861,7 +865,7 @@ describe('SyncBackService - handleFileChange() no-frontmatter path (lines 88-89)
 			.mockReturnValueOnce({ frontmatter: { tags: ['lego', 'set'], setID: 23351 } })
 			.mockReturnValueOnce({}); // cache exists but no frontmatter property
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		expect(service.getChangeQueue().size).toBe(0);
 	});
@@ -987,7 +991,7 @@ describe('SyncBackService - uncovered branch coverage', () => {
 			}
 		});
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		const queue = service.getChangeQueue();
 		expect(queue.size).toBe(1);
@@ -1018,7 +1022,7 @@ describe('SyncBackService - uncovered branch coverage', () => {
 			}
 		});
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		const queue = service.getChangeQueue();
 		expect(queue.size).toBe(1);
@@ -1076,7 +1080,7 @@ describe('SyncBackService - uncovered branch coverage', () => {
 			}
 		});
 
-		await service.testHandleFileChange(file);
+		await service.testOnMetadataChanged(file);
 
 		// isLegoSetNote returns false → no change queued
 		expect(service.getChangeQueue().size).toBe(0);

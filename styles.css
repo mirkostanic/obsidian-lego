@@ -3,7 +3,8 @@
     padding: 20px;
 }
 
-.brickset-modal h2 {
+.brickset-modal .setting-item-heading,
+.brickset-sync-modal .setting-item-heading {
     margin-top: 0;
 }
 
@@ -65,9 +66,31 @@
 }
 
 .sync-progress-bar {
-    height: 100%;
+    display: block;
+    width: 100%;
+    height: 20px;
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: var(--background-modifier-border);
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.sync-progress-bar::-webkit-progress-bar {
+    background-color: var(--background-modifier-border);
+    border-radius: 10px;
+}
+
+.sync-progress-bar::-webkit-progress-value {
     background-color: var(--interactive-accent);
+    border-radius: 10px;
     transition: width 0.3s ease;
+}
+
+.sync-progress-bar::-moz-progress-bar {
+    background-color: var(--interactive-accent);
+    border-radius: 10px;
 }
 
 .sync-current-set {

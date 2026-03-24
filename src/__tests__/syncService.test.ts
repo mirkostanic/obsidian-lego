@@ -419,24 +419,15 @@ describe('SyncService - additional images fetch error (line 220)', () => {
 		vi.spyOn(noteCreator, 'createSetNote').mockResolvedValue({} as any);
 	});
 
-	it('should warn and continue when getAdditionalImages throws (line 220)', async () => {
+	it('should continue when getAdditionalImages throws (optional images)', async () => {
 		mockSingleOwnedSet(apiService);
 		vi.spyOn(apiService, 'getAdditionalImages').mockRejectedValue(new Error('Image fetch failed'));
-		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
 		const service = new SyncService(app, makeSettings({ downloadImagesOnSync: true }), apiService, noteCreator);
 		const result = await service.syncCollection();
 
-		// Sync should still succeed despite image fetch failure
 		expect(result.success).toBe(true);
 		expect(result.created).toBe(1);
-		expect(warnSpy).toHaveBeenCalledWith(
-			'Failed to fetch additional images for set %s:',
-			'75192-1',
-			expect.any(Error)
-		); // warn("Failed to fetch additional images for set %s:", set.number, error)
-
-		warnSpy.mockRestore();
 	});
 });
 

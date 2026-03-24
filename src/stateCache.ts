@@ -27,13 +27,13 @@ export class StateCache {
 	 */
 	async load(): Promise<void> {
 		try {
-			const exists = await this.app.vault.adapter.exists(this.cacheFile);
-			if (!exists) {
+			const file = this.app.vault.getFileByPath(this.cacheFile);
+			if (!file) {
 				this.cache = new Map();
 				return;
 			}
 
-			const data = await this.app.vault.adapter.read(this.cacheFile);
+			const data = await this.app.vault.read(file);
 			const parsed = JSON.parse(data);
 			this.cache = new Map(Object.entries(parsed));
 			this.isDirty = false;
@@ -53,10 +53,13 @@ export class StateCache {
 
 		try {
 			const data = Object.fromEntries(this.cache);
-			await this.app.vault.adapter.write(
-				this.cacheFile,
-				JSON.stringify(data, null, 2)
-			);
+			const json = JSON.stringify(data, null, 2);
+			const file = this.app.vault.getFileByPath(this.cacheFile);
+			if (file) {
+				await this.app.vault.process(file, () => json);
+			} else {
+				await this.app.vault.create(this.cacheFile, json);
+			}
 			this.isDirty = false;
 		} catch (error) {
 			console.error('Failed to save state cache:', error);

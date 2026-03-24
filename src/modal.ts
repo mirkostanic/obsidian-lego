@@ -12,22 +12,23 @@ export class SetNumberModal extends Modal {
 
 	onOpen() {
 		const { contentEl } = this;
-
-		contentEl.createEl('h2', { text: 'Fetch LEGO Set' });
+		contentEl.addClass('brickset-modal');
 
 		new Setting(contentEl)
-			.setName('Set Number')
-			.setDesc('Enter the LEGO set number (e.g., 75192, 10497, 21348)')
+			.setName('Fetch LEGO set')
+			.setHeading();
+
+		new Setting(contentEl)
+			.setName('Set number')
+			.setDesc('Enter the LEGO set number (e.g. 75192, 10497, 21348).')
 			.addText(text => {
 				text.setPlaceholder('75192')
 					.onChange(value => {
 						this.result = value;
 					});
-				
-				// Focus the input field
+
 				text.inputEl.focus();
-				
-				// Submit on Enter key
+
 				text.inputEl.addEventListener('keydown', (e: KeyboardEvent) => {
 					if (e.key === 'Enter') {
 						e.preventDefault();
@@ -64,7 +65,7 @@ export class SetNumberModal extends Modal {
 }
 
 export class SyncModal extends Modal {
-	private progressBar: HTMLElement;
+	private progressBar: HTMLProgressElement;
 	private statusText: HTMLElement;
 	private statsEl: HTMLElement;
 	private cancelButton: HTMLButtonElement;
@@ -80,7 +81,9 @@ export class SyncModal extends Modal {
 		const { contentEl } = this;
 		contentEl.addClass('brickset-sync-modal');
 
-		contentEl.createEl('h2', { text: 'Syncing LEGO Collection' });
+		new Setting(contentEl)
+			.setName('Syncing LEGO collection')
+			.setHeading();
 
 		const progressContainer = contentEl.createDiv({ cls: 'sync-progress-container' });
 		this.createProgressSection(progressContainer);
@@ -97,14 +100,12 @@ export class SyncModal extends Modal {
 
 	updateProgress(current: number, total: number, currentSetName?: string) {
 		const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
-		
-		// Update progress bar
-		this.progressBar.style.width = `${percentage}%`;
-		
-		// Update status text
+		const max = Math.max(1, total);
+		this.progressBar.max = max;
+		this.progressBar.value = Math.min(current, max);
+
 		this.statusText.textContent = `Progress: ${current} / ${total} sets (${percentage}%)`;
-		
-		// Update current set if provided
+
 		if (currentSetName) {
 			const currentSetEl = this.contentEl.querySelector('.sync-current-set');
 			if (currentSetEl) {
@@ -116,10 +117,10 @@ export class SyncModal extends Modal {
 	updateStats(created: number, updated: number, skipped: number, failed: number): void {
 		this.statsEl.empty();
 		const grid = this.statsEl.createDiv({ cls: 'sync-stats-grid' });
-		grid.createDiv({ text: `✓ Created: ${created}` });
-		grid.createDiv({ text: `↻ Updated: ${updated}` });
-		grid.createDiv({ text: `⊘ Skipped: ${skipped}` });
-		grid.createDiv({ text: `✗ Failed: ${failed}` });
+		grid.createDiv({ text: `New notes: ${created}` });
+		grid.createDiv({ text: `Updated notes: ${updated}` });
+		grid.createDiv({ text: `Skipped: ${skipped}` });
+		grid.createDiv({ text: `Failed: ${failed}` });
 	}
 
 	showComplete(
@@ -133,7 +134,9 @@ export class SyncModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 
-		contentEl.createEl('h2', { text: 'Sync Complete.' });
+		new Setting(contentEl)
+			.setName('Sync complete')
+			.setHeading();
 
 		const total = created + updated + skipped + failed;
 		const durationSec = Math.round(duration / 1000);
@@ -144,15 +147,15 @@ export class SyncModal extends Modal {
 		const summary = contentEl.createDiv({ cls: 'sync-summary' });
 
 		const headerP = summary.createEl('p', { cls: 'sync-summary-header' });
-		headerP.createEl('strong', { text: 'Summary:' });
+		headerP.createEl('strong', { text: 'Summary: ' });
 
 		const ul = summary.createEl('ul', { cls: 'sync-summary-list' });
-		ul.createEl('li', { text: `• Total sets processed: ${total}` });
-		ul.createEl('li', { text: `• New notes created: ${created}` });
-		ul.createEl('li', { text: `• Existing notes updated: ${updated}` });
-		ul.createEl('li', { text: `• Sets skipped: ${skipped}` });
+		ul.createEl('li', { text: `Total sets processed: ${total}` });
+		ul.createEl('li', { text: `New notes created: ${created}` });
+		ul.createEl('li', { text: `Existing notes updated: ${updated}` });
+		ul.createEl('li', { text: `Sets skipped: ${skipped}` });
 		if (failed > 0) {
-			ul.createEl('li', { text: `• Failed: ${failed}`, cls: 'sync-summary-errors' });
+			ul.createEl('li', { text: `Failed: ${failed}`, cls: 'sync-summary-errors' });
 		}
 
 		const timeP = summary.createEl('p', { cls: 'sync-summary-time' });
@@ -161,7 +164,9 @@ export class SyncModal extends Modal {
 
 		if (failedSets.length > 0) {
 			const errorsSection = contentEl.createDiv({ cls: 'sync-failed-sets' });
-			errorsSection.createEl('h3', { text: `Failed Sets (${failedSets.length})` });
+			new Setting(errorsSection)
+				.setName(`Failed sets (${failedSets.length})`)
+				.setHeading();
 			const errorList = errorsSection.createEl('ul', { cls: 'sync-failed-list' });
 			for (const entry of failedSets) {
 				const li = errorList.createEl('li', { cls: 'sync-failed-item' });
@@ -181,7 +186,9 @@ export class SyncModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 
-		contentEl.createEl('h2', { text: 'Sync Failed.' });
+		new Setting(contentEl)
+			.setName('Sync failed')
+			.setHeading();
 		contentEl.createDiv({ cls: 'sync-error' })
 			.createEl('p', { text: message, cls: 'sync-error-message' });
 
@@ -196,13 +203,15 @@ export class SyncModal extends Modal {
 
 	private createProgressSection(container: HTMLElement): void {
 		this.statusText = container.createEl('p', {
-			text: 'Initializing sync...',
+			text: 'Initializing sync…',
 			cls: 'sync-status-text'
 		});
 
 		const progressBarContainer = container.createDiv({ cls: 'sync-progress-bar-container' });
-		this.progressBar = progressBarContainer.createDiv({ cls: 'sync-progress-bar' });
-		this.progressBar.style.width = '0%';
+		this.progressBar = progressBarContainer.createEl('progress', {
+			cls: 'sync-progress-bar',
+			attr: { value: '0', max: '1' },
+		}) as HTMLProgressElement;
 
 		container.createDiv({ cls: 'sync-current-set' });
 	}
@@ -214,12 +223,12 @@ export class SyncModal extends Modal {
 
 	private createCancelButton(container: HTMLElement): void {
 		this.cancelButton = container.createEl('button', {
-			text: 'Cancel Sync',
+			text: 'Cancel sync',
 			cls: 'mod-warning'
 		});
 		this.cancelButton.addEventListener('click', () => {
 			this.cancelButton.disabled = true;
-			this.cancelButton.textContent = 'Cancelling...';
+			this.cancelButton.textContent = 'Cancelling…';
 			this.onCancel();
 		});
 	}

@@ -52,6 +52,7 @@ vi.mock('obsidian', () => {
 			return this;
 		});
 		setDesc = vi.fn().mockReturnThis();
+		setHeading = vi.fn().mockReturnThis();
 		addText = vi.fn().mockImplementation((cb: any) => {
 			const textComp: { setPlaceholder: () => any; setValue: () => any; onChange: (h: any) => any; inputEl: { type: string } } = {
 				setPlaceholder: vi.fn().mockReturnThis(),
@@ -197,25 +198,25 @@ describe('BricksetSettingTab', () => {
 	});
 
 	describe('onChange handlers', () => {
-		it('should update legoSetsFolder when LEGO Sets Folder onChange fires', async () => {
-			await capturedHandlers.onChange['LEGO Sets Folder']?.('My LEGO');
+		it('should update legoSetsFolder when LEGO sets folder onChange fires', async () => {
+			await capturedHandlers.onChange['LEGO sets folder']?.('My LEGO');
 			expect(plugin.settings.legoSetsFolder).toBe('My LEGO');
 			expect(plugin.saveSettings).toHaveBeenCalled();
 		});
 
 		it('should default legoSetsFolder to "LEGO Sets" when empty value provided', async () => {
-			await capturedHandlers.onChange['LEGO Sets Folder']?.('');
+			await capturedHandlers.onChange['LEGO sets folder']?.('');
 			expect(plugin.settings.legoSetsFolder).toBe('LEGO Sets');
 		});
 
-		it('should update username when Brickset Username onChange fires', async () => {
-			await capturedHandlers.onChange['Brickset Username']?.('newuser');
+		it('should update username when Brickset username onChange fires', async () => {
+			await capturedHandlers.onChange['Brickset username']?.('newuser');
 			expect(plugin.settings.username).toBe('newuser');
 			expect(plugin.saveSettings).toHaveBeenCalled();
 		});
 
-		it('should update password when Brickset Password onChange fires', async () => {
-			await capturedHandlers.onChange['Brickset Password']?.('newpass');
+		it('should update password when Brickset password onChange fires', async () => {
+			await capturedHandlers.onChange['Brickset password']?.('newpass');
 			expect(plugin.settings.password).toBe('newpass');
 			expect(plugin.saveSettings).toHaveBeenCalled();
 		});
@@ -329,14 +330,14 @@ describe('BricksetSettingTab', () => {
 			vi.mocked(BricksetApiService).mockImplementation(function() {
 				return { login: mockLogin, validateKey: vi.fn() } as any;
 			});
-			await capturedHandlers.onClick['Brickset Password']?.();
+			await capturedHandlers.onClick['Brickset password']?.();
 			expect(mockLogin).toHaveBeenCalledWith('testuser', 'testpass');
 			expect(plugin.settings.userHash).toBe('new-hash');
 		});
 
 		it('should show notice when Login clicked with no username', async () => {
 			plugin.settings.username = '';
-			await expect(capturedHandlers.onClick['Brickset Password']?.()).resolves.not.toThrow();
+			await expect(capturedHandlers.onClick['Brickset password']?.()).resolves.not.toThrow();
 		});
 
 		it('should handle login failure gracefully', async () => {
@@ -344,7 +345,7 @@ describe('BricksetSettingTab', () => {
 			vi.mocked(BricksetApiService).mockImplementation(function() {
 				return { login: vi.fn().mockRejectedValue(new Error('Auth failed')), validateKey: vi.fn() } as any;
 			});
-			await expect(capturedHandlers.onClick['Brickset Password']?.()).resolves.not.toThrow();
+			await expect(capturedHandlers.onClick['Brickset password']?.()).resolves.not.toThrow();
 		});
 	});
 

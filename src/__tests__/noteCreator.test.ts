@@ -190,7 +190,7 @@ describe('NoteCreator - writeSyncLog()', () => {
 	let mockVault: {
 		getAbstractFileByPath: ReturnType<typeof vi.fn>;
 		create: ReturnType<typeof vi.fn>;
-		modify: ReturnType<typeof vi.fn>;
+		process: ReturnType<typeof vi.fn>;
 		createFolder: ReturnType<typeof vi.fn>;
 		createBinary: ReturnType<typeof vi.fn>;
 	};
@@ -203,7 +203,7 @@ describe('NoteCreator - writeSyncLog()', () => {
 		mockVault = {
 			getAbstractFileByPath: vi.fn().mockReturnValue(null),
 			create: vi.fn().mockResolvedValue(undefined),
-			modify: vi.fn().mockResolvedValue(undefined),
+			process: vi.fn().mockImplementation(async (_f: unknown, fn: (d: string) => string) => fn('')),
 			createFolder: vi.fn().mockResolvedValue(undefined),
 			createBinary: vi.fn().mockResolvedValue(undefined),
 		};
@@ -266,7 +266,7 @@ describe('NoteCreator - writeSyncLog()', () => {
 
 		await creator.writeSyncLog([], FIXED_TS);
 
-		expect(mockVault.modify).toHaveBeenCalledOnce();
+		expect(mockVault.process).toHaveBeenCalledOnce();
 		expect(mockVault.create).not.toHaveBeenCalled();
 	});
 

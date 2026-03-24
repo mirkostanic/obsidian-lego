@@ -1,4 +1,4 @@
-import { App, TFile, Notice, EventRef } from 'obsidian';
+import { App, TFile, Notice } from 'obsidian';
 import { BricksetApiService } from './bricksetApi';
 import { StateCache } from './stateCache';
 import { BricksetPluginSettings } from './types';
@@ -25,7 +25,6 @@ interface FrontmatterChange {
 export class SyncBackService {
 	private readonly changeQueue: Map<string, FrontmatterChange> = new Map();
 	private processingTimer: NodeJS.Timeout | null = null;
-	private metadataChangeRef: EventRef | null = null;
 	private isProcessing: boolean = false;
 
 	constructor(
@@ -36,42 +35,27 @@ export class SyncBackService {
 	) {}
 
 	/**
-	 * Start monitoring for frontmatter changes
+	 * No-op placeholder; the metadata listener is registered on the plugin with
+	 * registerEvent for automatic cleanup on unload.
 	 */
 	startWatching(): void {
-		if (this.metadataChangeRef) {
-			return; // Already watching
-		}
-
-		this.metadataChangeRef = this.app.metadataCache.on(
-			'changed',
-			this.handleFileChange.bind(this)
-		);
-
-		console.log('SyncBackService: Started watching for changes');
+		// Metadata listener is owned by BricksetPlugin; this hook remains for API symmetry.
 	}
 
 	/**
-	 * Stop monitoring
+	 * Clear debounce timer (e.g. when bidirectional sync is disabled).
 	 */
 	stopWatching(): void {
-		if (this.metadataChangeRef) {
-			this.app.metadataCache.offref(this.metadataChangeRef);
-			this.metadataChangeRef = null;
-		}
-
 		if (this.processingTimer) {
 			clearTimeout(this.processingTimer);
 			this.processingTimer = null;
 		}
-
-		console.log('SyncBackService: Stopped watching');
 	}
 
 	/**
-	 * Handle file metadata change
+	 * Handle file metadata change (invoked from plugin-registered listener).
 	 */
-	private async handleFileChange(file: TFile): Promise<void> {
+	async onMetadataChanged(file: TFile): Promise<void> {
 		if (!this.isLegoSetNote(file)) return;
 
 		const cache = this.app.metadataCache.getFileCache(file);

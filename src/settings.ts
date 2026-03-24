@@ -25,7 +25,6 @@ export class BricksetSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 
 		containerEl.empty();
-		containerEl.createEl('h2', { text: 'Brickset Plugin Settings' });
 
 		this.renderFolderSection(containerEl);
 		this.renderAuthSection(containerEl);
@@ -40,7 +39,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 	private renderFolderSection(containerElement: HTMLElement): void {
 		this.addTextSetting(
 			containerElement,
-			'LEGO Sets Folder',
+			'LEGO sets folder',
 			'Folder where LEGO set notes will be created',
 			'LEGO Sets',
 			() => this.plugin.settings.legoSetsFolder,
@@ -49,7 +48,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 	}
 
 	private renderAuthSection(containerElement: HTMLElement): void {
-		containerElement.createEl('h3', { text: 'User Authentication' });
+		this.addSectionHeading(containerElement, 'User authentication');
 		containerElement.createEl('p', {
 			text: 'Provide your Brickset credentials to access personalized features (collection, wishlist, etc.)',
 			cls: 'setting-item-description',
@@ -58,7 +57,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 		// Username setting
 		this.addTextSetting(
 			containerElement,
-			'Brickset Username',
+			'Brickset username',
 			'Your Brickset username (optional)',
 			'username',
 			() => this.plugin.settings.username,
@@ -68,7 +67,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 		// Password setting — mask input, attach Login button
 		this.addTextSetting(
 			containerElement,
-			'Brickset Password',
+			'Brickset password',
 			'Your Brickset password (optional)',
 			'password',
 			() => this.plugin.settings.password,
@@ -109,7 +108,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 	}
 
 	private renderCollectionSyncSection(containerElement: HTMLElement): void {
-		containerElement.createEl('h3', { text: 'Collection Sync' });
+		this.addSectionHeading(containerElement, 'Collection sync');
 		containerElement.createEl('p', {
 			text: 'Configure how your Brickset collection syncs with Obsidian',
 			cls: 'setting-item-description',
@@ -167,7 +166,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 	}
 
 	private renderBidirectionalSyncSection(containerElement: HTMLElement): void {
-		containerElement.createEl('h3', { text: 'Bidirectional Sync' });
+		this.addSectionHeading(containerElement, 'Bidirectional sync');
 		containerElement.createEl('p', {
 			text: 'Automatically sync changes from Obsidian back to Brickset.com',
 			cls: 'setting-item-description',
@@ -233,6 +232,10 @@ export class BricksetSettingTab extends PluginSettingTab {
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
+
+	private addSectionHeading(containerEl: HTMLElement, title: string): void {
+		new Setting(containerEl).setName(title).setHeading();
+	}
 
 	/**
 	 * Create a text Setting that reads its initial value from `get`,

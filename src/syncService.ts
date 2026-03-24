@@ -199,8 +199,8 @@ export class SyncService {
 				} else {
 					try {
 						additionalImages = await this.apiService.getAdditionalImages(set.setID);
-					} catch (error) {
-						console.warn("Failed to fetch additional images for set %s:", set.number, error);
+					} catch {
+						/* additional images are optional */
 					}
 				}
 			}

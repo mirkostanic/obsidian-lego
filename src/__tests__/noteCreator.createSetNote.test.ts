@@ -64,10 +64,12 @@ function createMockApp() {
 				write: vi.fn().mockResolvedValue(undefined)
 			},
 			getAbstractFileByPath: vi.fn().mockReturnValue(null),
+			getFileByPath: vi.fn().mockReturnValue(null),
 			create: vi.fn().mockResolvedValue(undefined),
 			createBinary: vi.fn().mockResolvedValue(undefined),
 			createFolder: vi.fn().mockResolvedValue(undefined),
 			modify: vi.fn().mockResolvedValue(undefined),
+			process: vi.fn().mockImplementation(async (_f: unknown, fn: (d: string) => string) => fn('')),
 			read: vi.fn().mockResolvedValue('')
 		},
 		metadataCache: {
@@ -195,7 +197,9 @@ describe('NoteCreator - createSetNote()', () => {
 
 			const mdCreateCalls = app.vault.create.mock.calls.filter(([p]: [string]) => p.endsWith('.md'));
 			expect(mdCreateCalls).toHaveLength(0);
-			expect(app.vault.modify).toHaveBeenCalledWith(existingFile, expect.any(String));
+			expect(app.vault.process).toHaveBeenCalledWith(existingFile, expect.any(Function));
+			const [, fn] = app.vault.process.mock.calls[0] as [unknown, () => string];
+			expect(fn()).toContain('setNumber: "75192"');
 		});
 
 		it('should handle "File already exists" race condition gracefully', async () => {
@@ -216,8 +220,7 @@ describe('NoteCreator - createSetNote()', () => {
 
 			await creator.createSetNote(set, []);
 
-			// Should have fallen back to modify
-			expect(app.vault.modify).toHaveBeenCalledWith(existingFile, expect.any(String));
+			expect(app.vault.process).toHaveBeenCalledWith(existingFile, expect.any(Function));
 		});
 
 		it('should re-throw non-"already exists" errors', async () => {
@@ -1049,8 +1052,6 @@ describe('NoteCreator - downloadImage content-type validation', () => {
 	});
 
 	it('should skip download when content-type is not an image', async () => {
-		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
 		mockRequestUrl.mockResolvedValue({
 			status: 200,
 			headers: { 'content-type': 'text/html' },
@@ -1061,14 +1062,7 @@ describe('NoteCreator - downloadImage content-type validation', () => {
 		const set = makeSet();
 		await creator.createSetNote(set, []);
 
-		expect(warnSpy).toHaveBeenCalledWith(
-			'Skipping non-image response (%s) from %s',
-			'text/html',
-			expect.any(String)
-		);
 		expect(app.vault.createBinary).not.toHaveBeenCalled();
-
-		warnSpy.mockRestore();
 	});
 
 	it('should proceed with download when content-type starts with image/', async () => {
