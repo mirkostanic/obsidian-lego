@@ -9,8 +9,6 @@ const capturedHandlers: {
 	onClick: {}
 };
 
-let settingCallCount = 0;
-
 // Mock obsidian before importing settings
 vi.mock('obsidian', () => {
 	function createEl(tag: string, opts?: { text?: string; cls?: string; id?: string; href?: string; attr?: Record<string, string> }) {
@@ -44,9 +42,7 @@ vi.mock('obsidian', () => {
 
 	class MockSetting {
 		private _name = '';
-		constructor(public containerEl: any) {
-			settingCallCount++;
-		}
+		constructor(public containerEl: any) {}
 		setName = vi.fn().mockImplementation((name: string) => {
 			this._name = name;
 			return this;

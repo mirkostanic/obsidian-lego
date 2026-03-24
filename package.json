@@ -1,6 +1,6 @@
 {
   "name": "brickset-lego",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "homepage": "https://github.com/npm/example#readme",
   "description": "Obsidian plugin to fetch LEGO set information from Brickset API",
   "main": "main.js",
@@ -14,7 +14,9 @@
     "version": "node version-bump.mjs && git add manifest.json versions.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [
     "obsidian",
@@ -25,13 +27,18 @@
   "author": "Mirko Stanić",
   "license": "MIT",
   "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@eslint/json": "0.14.0",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.0.18",
     "builtin-modules": "3.3.0",
     "esbuild": "0.25.0",
+    "eslint": "^9.30.1",
+    "eslint-plugin-obsidianmd": "^0.1.9",
     "obsidian": "latest",
     "tslib": "2.4.0",
-    "typescript": "4.7.4",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.35.1",
     "vitest": "^4.0.18"
   }
 }

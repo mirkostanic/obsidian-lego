@@ -259,9 +259,9 @@ export class BricksetSettingTab extends PluginSettingTab {
 			.addText(text => {
 				text.setPlaceholder(placeholder)
 					.setValue(get())
-					.onChange(async (value) => {
+					.onChange((value) => {
 						set(value);
-						await this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 					});
 				configure?.(text);
 			});
@@ -307,12 +307,14 @@ export class BricksetSettingTab extends PluginSettingTab {
 			.setName(name)
 			.setDesc(desc)
 			.addDropdown(dropdown => {
-				options.forEach(({ value, label }) => dropdown.addOption(value, label));
+				for (const { value, label } of options) {
+					void dropdown.addOption(value, label);
+				}
 				dropdown
 					.setValue(get())
-					.onChange(async (value) => {
+					.onChange((value) => {
 						set(value);
-						await this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 					});
 			});
 	}
@@ -363,11 +365,11 @@ export class BricksetSettingTab extends PluginSettingTab {
 			.setDesc(desc)
 			.addToggle(toggle => toggle
 				.setValue(get())
-				.onChange(async (value) => {
+				.onChange((value) => {
 					set(value);
-					await this.plugin.saveSettings();
+					void this.plugin.saveSettings();
 					if (value) onEnable?.();
-					else        onDisable?.();
+					else onDisable?.();
 				}));
 	}
 

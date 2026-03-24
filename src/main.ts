@@ -62,7 +62,7 @@ export default class BricksetPlugin extends Plugin {
 				const file = this.app.workspace.getActiveFile();
 				if (file) {
 					if (!checking) {
-						this.syncCurrentNote(file);
+						void this.syncCurrentNote(file);
 					}
 					return true;
 				}
@@ -72,7 +72,7 @@ export default class BricksetPlugin extends Plugin {
 
 		// Ensure folder and .base file exist once the vault is ready
 		this.app.workspace.onLayoutReady(() => {
-			this.ensureBaseFile();
+			void this.ensureBaseFile();
 		});
 
 		// Start bidirectional sync if enabled
@@ -131,7 +131,7 @@ export default class BricksetPlugin extends Plugin {
 	 */
 	private showSetNumberModal() {
 		new SetNumberModal(this.app, (setNumber) => {
-			this.fetchAndCreateNote(setNumber);
+			void this.fetchAndCreateNote(setNumber);
 		}).open();
 	}
 

@@ -5,9 +5,8 @@ export interface BricksetApiResponse {
 	message?: string;
 }
 
-export interface CheckKeyResponse extends BricksetApiResponse {
-	// status: 'success' or 'error'
-}
+/** Brickset checkKey: status is `'success'` or `'error'`. */
+export type CheckKeyResponse = BricksetApiResponse;
 
 export interface LoginResponse extends BricksetApiResponse {
 	hash?: string;

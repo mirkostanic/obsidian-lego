@@ -13,6 +13,9 @@ export interface CachedState {
 	lastModified: number;
 }
 
+/** Frontmatter for LEGO set notes as returned from Obsidian's metadata cache. */
+export type LegoSetFrontmatter = Record<string, unknown>;
+
 export class StateCache {
 	private cache: Map<string, CachedState> = new Map();
 	private readonly cacheFile: string;
@@ -115,17 +118,21 @@ export class StateCache {
 	/**
 	 * Update state from frontmatter
 	 */
-	updateFromFrontmatter(filePath: string, frontmatter: any): void {
-		if (!frontmatter.setID) {
+	updateFromFrontmatter(filePath: string, frontmatter: LegoSetFrontmatter): void {
+		const setID = frontmatter['setID'];
+		if (typeof setID !== 'number' || !Number.isFinite(setID)) {
 			return;
 		}
 
+		const qtyOwned = frontmatter['qtyOwned'];
+		const userRating = frontmatter['userRating'];
+
 		const state: CachedState = {
-			setID: frontmatter.setID,
-			owned: frontmatter.owned || false,
-			wanted: frontmatter.wanted || false,
-			qtyOwned: frontmatter.qtyOwned,
-			userRating: frontmatter.userRating,
+			setID,
+			owned: Boolean(frontmatter['owned']),
+			wanted: Boolean(frontmatter['wanted']),
+			qtyOwned: typeof qtyOwned === 'number' ? qtyOwned : undefined,
+			userRating: typeof userRating === 'number' ? userRating : undefined,
 			lastModified: Date.now()
 		};
 

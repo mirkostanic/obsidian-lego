@@ -211,7 +211,7 @@ export class SyncModal extends Modal {
 		this.progressBar = progressBarContainer.createEl('progress', {
 			cls: 'sync-progress-bar',
 			attr: { value: '0', max: '1' },
-		}) as HTMLProgressElement;
+		});
 
 		container.createDiv({ cls: 'sync-current-set' });
 	}
