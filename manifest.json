@@ -5,5 +5,6 @@
 	"description": "Fetches LEGO set information from Brickset API and creates formatted notes with set details and images.",
 	"author": "Mirko Stanić",
 	"authorUrl": "https://mirko.stanic.one",
-	"isDesktopOnly": false
+	"isDesktopOnly": false,
+	"version": "0.8.0"
 }
