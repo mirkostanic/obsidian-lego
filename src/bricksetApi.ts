@@ -90,12 +90,25 @@ export class BricksetApiService {
 	}
 
 	/**
-	 * Login to get user hash for authenticated requests
+	 * Login to get user hash for authenticated requests.
+	 *
+	 * Uses POST with a form-encoded body so the password is not part of the
+	 * request URL (URLs leak into network logs, devtools history, and any
+	 * future telemetry that captures URL strings).
 	 */
 	async login(username: string, password: string): Promise<string> {
 		try {
-			const url = `${this.baseUrl}/login?apiKey=${encodeURIComponent(this.apiKey)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-			const response = await requestUrl({ url });
+			const body = new URLSearchParams({
+				apiKey: this.apiKey,
+				username,
+				password,
+			}).toString();
+			const response = await requestUrl({
+				url: `${this.baseUrl}/login`,
+				method: 'POST',
+				contentType: 'application/x-www-form-urlencoded',
+				body,
+			});
 			const data: LoginResponse = response.json;
 
 			if (data.status === 'success' && data.hash) {

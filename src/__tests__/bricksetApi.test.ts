@@ -89,6 +89,31 @@ describe('BricksetApiService', () => {
 
 			await expect(service.login('user@example.com', 'wrong')).rejects.toThrow(BricksetApiError);
 		});
+
+		// Regression: previously the password was sent as a URL query
+		// parameter (`?...&password=...`), which leaks into network logs,
+		// devtools history, and any future telemetry that captures URLs.
+		it('should POST credentials in the request body, not the URL', async () => {
+			mockRequestUrl.mockResolvedValue({
+				status: 200,
+				text: '{"status":"success","hash":"abc123"}',
+				json: { status: 'success', hash: 'abc123' }
+			} as any);
+
+			await service.login('user@example.com', 'super-secret');
+
+			const callArg = mockRequestUrl.mock.calls.at(-1)?.[0] as any;
+			expect(callArg).toBeDefined();
+			expect(callArg.method).toBe('POST');
+			expect(callArg.url).not.toContain('password=');
+			expect(callArg.url).not.toContain('super-secret');
+			expect(callArg.url).not.toContain('user%40example.com');
+			expect(callArg.contentType).toBe('application/x-www-form-urlencoded');
+			// URLSearchParams encodes '@' as '%40' and ' ' as '+'.
+			expect(callArg.body).toContain('password=super-secret');
+			expect(callArg.body).toContain('username=user%40example.com');
+			expect(callArg.body).toContain('apiKey=test-api-key');
+		});
 	});
 
 	describe('setUserFlags()', () => {
