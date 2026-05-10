@@ -1,7 +1,6 @@
 {
 	"id": "brickset-lego",
 	"name": "Brickset LEGO",
-	"version": "0.6.0",
 	"minAppVersion": "1.9.7",
 	"description": "Fetches LEGO set information from Brickset API and creates formatted notes with set details and images.",
 	"author": "Mirko Stanić",
