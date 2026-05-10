@@ -50,7 +50,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 	private renderAuthSection(containerElement: HTMLElement): void {
 		this.addSectionHeading(containerElement, 'User authentication');
 		containerElement.createEl('p', {
-			text: 'Provide your Brickset credentials to access personalized features (collection, wishlist, etc.)',
+			text: 'Provide your brickset credentials to access personalized features (collection, wishlist, etc.)',
 			cls: 'setting-item-description',
 		});
 
@@ -110,7 +110,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 	private renderCollectionSyncSection(containerElement: HTMLElement): void {
 		this.addSectionHeading(containerElement, 'Collection sync');
 		containerElement.createEl('p', {
-			text: 'Configure how your Brickset collection syncs with Obsidian',
+			text: 'Configure how your brickset collection syncs with Obsidian',
 			cls: 'setting-item-description',
 		});
 
@@ -168,7 +168,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 	private renderBidirectionalSyncSection(containerElement: HTMLElement): void {
 		this.addSectionHeading(containerElement, 'Bidirectional sync');
 		containerElement.createEl('p', {
-			text: 'Automatically sync changes from Obsidian back to Brickset.com',
+			text: 'Automatically sync changes from Obsidian back to brickset.com',
 			cls: 'setting-item-description',
 		});
 
@@ -217,13 +217,13 @@ export class BricksetSettingTab extends PluginSettingTab {
 		const div = containerElement.createDiv({ cls: 'brickset-hint' });
 		div.createEl('strong', { text: 'How it works: ' });
 		div.appendText('When you change the ');
-		div.createEl('code', { text: 'owned' });
+		div.createEl('code', { text: 'Owned' });
 		div.appendText(', ');
-		div.createEl('code', { text: 'wanted' });
+		div.createEl('code', { text: 'Wanted' });
 		div.appendText(', ');
-		div.createEl('code', { text: 'qtyOwned' });
+		div.createEl('code', { text: 'Quantity owned' });
 		div.appendText(', or ');
-		div.createEl('code', { text: 'userRating' });
+		div.createEl('code', { text: 'User ating' });
 		div.appendText(
 			" properties in a LEGO set note's frontmatter, the plugin will automatically sync those changes to your Brickset.com account after the configured delay."
 		);

@@ -26,8 +26,8 @@ vi.mock('obsidian', async (importOriginal) => {
  * Expose private methods for testing
  */
 class TestableSyncBackService extends SyncBackService {
-	public testOnMetadataChanged(file: any): Promise<void> {
-		return this.onMetadataChanged(file);
+	public testOnMetadataChanged(file: any): void {
+		this.onMetadataChanged(file);
 	}
 
 	public testSyncToApi(change: any): Promise<void> {
@@ -916,6 +916,57 @@ describe('SyncBackService - scheduleProcessing() timer callback (line 204)', () 
 
 		// Only called once (second schedule replaced first)
 		expect(processQueueSpy).toHaveBeenCalledTimes(1);
+	});
+
+	// Regression: previously, processQueue's `isProcessing` guard caused any
+	// changes that arrived while a flush was in-flight to be dropped on the
+	// floor — they sat in the queue until a future, unrelated edit happened
+	// to schedule another flush. The fix reschedules from the tail of the
+	// in-flight flush whenever the queue is non-empty when the flush ends.
+	it('should reschedule a follow-up flush when changes arrive during processing', async () => {
+		// Use real timers for this test: the inter-call delay(100) inside
+		// processQueue is a real setTimeout, and scheduleProcessing arms a
+		// short debounce. Mixing fake timers with the real promise chain
+		// here just adds bookkeeping noise.
+		vi.useRealTimers();
+
+		const setUserFlagsSpy = vi.spyOn(apiService, 'setUserFlags').mockResolvedValue(true);
+		app.metadataCache.getFileCache.mockReturnValue({
+			frontmatter: { setID: 1, owned: true, wanted: false }
+		});
+
+		// Seed the queue with the first change and start the flush.
+		const file1 = createMockFile('LEGO Sets/A.md');
+		(service as any).changeQueue.set(file1.path, {
+			file: file1,
+			setID: 1,
+			changes: { owned: true },
+			timestamp: 0,
+		});
+
+		const flush = service.testProcessQueue();
+
+		// While the first flush is awaiting setUserFlags / delay, enqueue a
+		// second change. The original code would drop this change here; the
+		// fix keeps it in the queue until the in-flight flush finishes.
+		await Promise.resolve();
+		const file2 = createMockFile('LEGO Sets/B.md');
+		(service as any).changeQueue.set(file2.path, {
+			file: file2,
+			setID: 2,
+			changes: { wanted: true },
+			timestamp: 0,
+		});
+
+		await flush;
+
+		// Wait long enough for the rescheduled debounce timer (100 ms) plus
+		// the inter-call delay to elapse and the second flush to complete.
+		await new Promise(resolve => setTimeout(resolve, 350));
+
+		expect(setUserFlagsSpy).toHaveBeenCalledTimes(2);
+		expect(setUserFlagsSpy.mock.calls[1][0]).toBe(2);
+		expect((service as any).changeQueue.size).toBe(0);
 	});
 });
 

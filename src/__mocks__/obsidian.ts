@@ -44,8 +44,9 @@ export const requestUrl = vi.fn().mockResolvedValue({
 export interface RequestUrlParam {
 	url: string;
 	method?: string;
+	contentType?: string;
 	headers?: Record<string, string>;
-	body?: string;
+	body?: string | ArrayBuffer;
 }
 
 // Mock App

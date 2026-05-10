@@ -15,12 +15,12 @@ export class SetNumberModal extends Modal {
 		contentEl.addClass('brickset-modal');
 
 		new Setting(contentEl)
-			.setName('Fetch LEGO set')
+			.setName('Fetch lego set')
 			.setHeading();
 
 		new Setting(contentEl)
 			.setName('Set number')
-			.setDesc('Enter the LEGO set number (e.g. 75192, 10497, 21348).')
+			.setDesc('Enter the lego set number (e.g. 75192, 10497, 21348).')
 			.addText(text => {
 				text.setPlaceholder('75192')
 					.onChange(value => {
@@ -82,7 +82,7 @@ export class SyncModal extends Modal {
 		contentEl.addClass('brickset-sync-modal');
 
 		new Setting(contentEl)
-			.setName('Syncing LEGO collection')
+			.setName('Syncing lego collection')
 			.setHeading();
 
 		const progressContainer = contentEl.createDiv({ cls: 'sync-progress-container' });

@@ -240,11 +240,11 @@ export class NoteCreator {
 			'---',
 			`tags: [${tags.join(', ')}]`,
 			`setID: ${set.setID}`,
-			`setNumber: "${set.number}"`,
-			`theme: "${this.escapeYaml(set.theme)}"`,
+			`setNumber: ${this.formatYamlString(set.number)}`,
+			`theme: ${this.formatYamlString(set.theme)}`,
 		);
 		if (set.subtheme) {
-			lines.push(`subtheme: "${this.escapeYaml(set.subtheme)}"`);
+			lines.push(`subtheme: ${this.formatYamlString(set.subtheme)}`);
 		}
 		lines.push(`year: ${set.year}`);
 		if (set.pieces) {
@@ -461,12 +461,17 @@ export class NoteCreator {
 	}
 
 	/**
-	 * Escape special characters in YAML values
+	 * Format a string as a YAML double-quoted scalar.
+	 *
+	 * `JSON.stringify` produces a valid YAML 1.2 double-quoted scalar for any
+	 * string: it wraps the value in `"..."` and escapes `"`, `\`, and the
+	 * control characters that would otherwise break YAML parsing (newlines,
+	 * tabs, NUL, etc). The previous `escapeYaml` helper only escaped `"`,
+	 * which left `\` and newlines in API-supplied fields free to corrupt the
+	 * frontmatter or inject YAML keys.
 	 */
-	private escapeYaml(value: string): string {
-		if (!value) return '';
-		// Escape quotes
-		return value.replaceAll('"', String.raw`\"`);
+	private formatYamlString(value: string | null | undefined): string {
+		return JSON.stringify(value ?? '');
 	}
 
 	/**

@@ -34,7 +34,7 @@ export default class BricksetPlugin extends Plugin {
 		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
 			if (!(file instanceof TFile)) return;
 			if (!this.settings.enableBidirectionalSync || !this.syncBackService) return;
-			void this.syncBackService.onMetadataChanged(file);
+			this.syncBackService.onMetadataChanged(file);
 		}));
 
 		// Add settings tab
@@ -43,21 +43,21 @@ export default class BricksetPlugin extends Plugin {
 		// Register command to fetch LEGO set
 		this.addCommand({
 			id: 'fetch-lego-set',
-			name: 'Fetch LEGO set',
+			name: 'Fetch lego set',
 			callback: () => this.showSetNumberModal(),
 		});
 
 		// Register command to sync collection
 		this.addCommand({
 			id: 'sync-collection',
-			name: 'Sync LEGO collection from Brickset',
+			name: 'Sync lego collection from brickset',
 			callback: () => this.syncCollection(),
 		});
 
 		// Register command to manually sync current note
 		this.addCommand({
 			id: 'sync-current-note',
-			name: 'Sync current note to Brickset',
+			name: 'Sync current note to brickset',
 			checkCallback: (checking: boolean) => {
 				const file = this.app.workspace.getActiveFile();
 				if (file) {
@@ -81,7 +81,15 @@ export default class BricksetPlugin extends Plugin {
 		}
 	}
 
-	onunload() {
+	// `onunload` is typed as `() => void` on Obsidian's `Component` base class,
+	// but in practice the plugin loader awaits a returned Promise — see
+	// existing community plugins that use `async onunload`. Returning a
+	// Promise here lets us await the final state-cache save so pending
+	// deltas aren't dropped when Obsidian shuts down or the plugin is
+	// disabled. The previous fire-and-forget `.catch(...)` could let the IO
+	// be torn down mid-flight.
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
+	async onunload(): Promise<void> {
 		this.stopSyncBack();
 
 		if (this.stateCacheTimer) {
@@ -90,9 +98,11 @@ export default class BricksetPlugin extends Plugin {
 		}
 
 		if (this.stateCache) {
-			this.stateCache.save().catch((err) => {
+			try {
+				await this.stateCache.save();
+			} catch (err) {
 				console.error('Brickset plugin: failed to save state cache on unload', err);
-			});
+			}
 		}
 	}
 
@@ -139,7 +149,7 @@ export default class BricksetPlugin extends Plugin {
 	 * Fetch LEGO set data and create note
 	 */
 	private async fetchAndCreateNote(setNumber: string) {
-		const loadingNotice = new Notice(`Fetching LEGO set ${setNumber}...`, 0);
+		const loadingNotice = new Notice(`Fetching lego set ${setNumber}...`, 0);
 
 		try {
 			await this.ensureBaseFile();
@@ -178,7 +188,7 @@ export default class BricksetPlugin extends Plugin {
 				new Notice(`Error: ${error.message}`);
 			}
 
-			console.error('Failed to fetch LEGO set:', error);
+			console.error('Failed to fetch lego set:', error);
 		}
 	}
 

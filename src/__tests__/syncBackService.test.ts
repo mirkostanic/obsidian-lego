@@ -262,6 +262,80 @@ describe('SyncBackService - detectChanges()', () => {
 			expect(result?.setID).toBe(23351);
 		});
 	});
+
+	describe('regression: qtyOwned absent from frontmatter', () => {
+		// Notes created from sets whose Brickset collection has no quantity
+		// don't get a `qtyOwned` field. Previously, the change-detection logic
+		// coerced the missing key to 0 via `Number(undefined) || 0`, then
+		// compared it against the cache's `undefined` and concluded that
+		// qtyOwned had changed to 0. The ownership rule then forced
+		// `owned = qtyOwned > 0 = false`, silently reverting any user toggle
+		// of `owned: true` and writing the revert back to disk and Brickset.
+		it('should respect a user toggling owned: false → true without qtyOwned in frontmatter', () => {
+			const file = createMockFile('test.md');
+			// Cache reflects original state: owned=false and no qtyOwned key
+			// (matches what NoteCreator writes for sets without a quantity).
+			stateCache.set(file.path, {
+				setID: 23351,
+				owned: false,
+				wanted: false,
+				qtyOwned: undefined,
+				lastModified: 0,
+			});
+
+			const result = service.testDetectChanges(file, {
+				setID: 23351,
+				owned: true,
+				wanted: false,
+				// qtyOwned intentionally absent
+			});
+
+			expect(result).not.toBeNull();
+			expect(result?.changes.owned).toBe(true);
+			// And critically, we must not synthesise a qtyOwned change that
+			// would flip owned back to false.
+			expect(result?.changes.qtyOwned).toBeUndefined();
+		});
+
+		it('should not flag a change when nothing changed and qtyOwned is absent on both sides', () => {
+			const file = createMockFile('test.md');
+			stateCache.set(file.path, {
+				setID: 23351,
+				owned: true,
+				wanted: false,
+				qtyOwned: undefined,
+				lastModified: 0,
+			});
+
+			const result = service.testDetectChanges(file, {
+				setID: 23351,
+				owned: true,
+				wanted: false,
+			});
+
+			expect(result).toBeNull();
+		});
+
+		it('should ignore a non-numeric qtyOwned (treats it the same as absent)', () => {
+			const file = createMockFile('test.md');
+			stateCache.set(file.path, {
+				setID: 23351,
+				owned: true,
+				wanted: false,
+				qtyOwned: undefined,
+				lastModified: 0,
+			});
+
+			const result = service.testDetectChanges(file, {
+				setID: 23351,
+				owned: true,
+				wanted: false,
+				qtyOwned: 'not a number',
+			});
+
+			expect(result).toBeNull();
+		});
+	});
 });
 
 describe('SyncBackService - lifecycle', () => {

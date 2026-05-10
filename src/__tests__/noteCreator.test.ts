@@ -20,8 +20,8 @@ class TestableNoteCreator extends NoteCreator {
 		return (this as any).sanitizeTag(tag);
 	}
 
-	public testEscapeYaml(value: string): string {
-		return (this as any).escapeYaml(value);
+	public testFormatYamlString(value: string | null | undefined): string {
+		return (this as any).formatYamlString(value);
 	}
 
 	public testGetCurrencySymbol(region: string): string {
@@ -103,25 +103,34 @@ describe('NoteCreator', () => {
 		});
 	});
 
-	describe('escapeYaml()', () => {
-		it('should escape double quotes', () => {
-			expect(creator.testEscapeYaml('test "quoted" text')).toBe(String.raw`test \"quoted\" text`);
+	describe('formatYamlString()', () => {
+		// formatYamlString returns a *complete* YAML double-quoted scalar
+		// (including surrounding quotes), not just the escaped inner text.
+		it('should wrap plain text in double quotes', () => {
+			expect(creator.testFormatYamlString('test value')).toBe('"test value"');
 		});
 
-		it('should handle multiple quotes', () => {
-			expect(creator.testEscapeYaml('"test" "value"')).toBe(String.raw`\"test\" \"value\"`);
+		it('should escape double quotes inside the value', () => {
+			expect(creator.testFormatYamlString('test "quoted" text'))
+				.toBe(String.raw`"test \"quoted\" text"`);
 		});
 
-		it('should leave text without quotes unchanged', () => {
-			expect(creator.testEscapeYaml('test value')).toBe('test value');
+		it('should escape backslashes (regression: previous escapeYaml left them raw)', () => {
+			expect(creator.testFormatYamlString(String.raw`a\b`)).toBe(String.raw`"a\\b"`);
+		});
+
+		it('should escape newlines and tabs (regression: previously broke YAML)', () => {
+			expect(creator.testFormatYamlString('line1\nline2')).toBe('"line1\\nline2"');
+			expect(creator.testFormatYamlString('a\tb')).toBe('"a\\tb"');
 		});
 
 		it('should handle empty string', () => {
-			expect(creator.testEscapeYaml('')).toBe('');
+			expect(creator.testFormatYamlString('')).toBe('""');
 		});
 
-		it('should handle string with only quotes', () => {
-			expect(creator.testEscapeYaml('"""')).toBe(String.raw`\"\"\"`);
+		it('should treat null/undefined as empty', () => {
+			expect(creator.testFormatYamlString(null)).toBe('""');
+			expect(creator.testFormatYamlString(undefined)).toBe('""');
 		});
 	});
 
@@ -145,9 +154,11 @@ describe('NoteCreator', () => {
 			expect(sanitizeFileName('75192 - Millennium Falcon™')).toBe('75192 - Millennium Falcon™');
 		});
 
-		it('should escape YAML values with quotes', () => {
-			expect(creator.testEscapeYaml('The "Ultimate" Set')).toBe(String.raw`The \"Ultimate\" Set`);
-			expect(creator.testEscapeYaml('Friends: Emma\'s "Art Café"')).toBe(String.raw`Friends: Emma's \"Art Café\"`);
+		it('should produce a valid YAML scalar for values with quotes', () => {
+			expect(creator.testFormatYamlString('The "Ultimate" Set'))
+				.toBe(String.raw`"The \"Ultimate\" Set"`);
+			expect(creator.testFormatYamlString('Friends: Emma\'s "Art Café"'))
+				.toBe(String.raw`"Friends: Emma's \"Art Café\""`);
 		});
 	});
 });

@@ -54,8 +54,12 @@ export class SyncBackService {
 
 	/**
 	 * Handle file metadata change (invoked from plugin-registered listener).
+	 *
+	 * Synchronous: changes are queued and processed later by a debounced timer
+	 * (see `scheduleProcessing` → `processQueue`), so this method itself never
+	 * awaits any work.
 	 */
-	async onMetadataChanged(file: TFile): Promise<void> {
+	onMetadataChanged(file: TFile): void {
 		if (!this.isLegoSetNote(file)) return;
 
 		const cache = this.app.metadataCache.getFileCache(file);
@@ -94,21 +98,36 @@ export class SyncBackService {
 
 		const { owned: prevOwned, wanted: prevWanted, qtyOwned: prevQtyOwned, userRating: prevRating } = previousState;
 
-		const currentOwned    = Boolean(frontmatter['owned']);
-		const currentWanted   = Boolean(frontmatter['wanted']);
-		const currentQtyOwned = Number(frontmatter['qtyOwned']) || 0;
+		const currentOwned  = Boolean(frontmatter['owned']);
+		const currentWanted = Boolean(frontmatter['wanted']);
+		// Use strict typeof checks so a missing key reads as `undefined`,
+		// matching how StateCache stores absent values. Coercing missing
+		// keys to `0` (via `Number(undefined) || 0`) used to fabricate
+		// a phantom qtyOwned change against a cached `undefined`, which
+		// then triggered the ownership rule below and silently flipped
+		// `owned: true` back to `false` for any note created without a
+		// qtyOwned field.
+		const qtyRaw    = frontmatter['qtyOwned'];
 		const ratingRaw = frontmatter['userRating'];
-		const currentRating = typeof ratingRaw === 'number' ? ratingRaw : undefined;
+		const currentQtyOwned = typeof qtyRaw    === 'number' ? qtyRaw    : undefined;
+		const currentRating   = typeof ratingRaw === 'number' ? ratingRaw : undefined;
 
 		const changes: FrontmatterChange['changes'] = {};
 
-		if (currentOwned    !== prevOwned)    { changes.owned      = currentOwned; }
-		if (currentWanted   !== prevWanted)   { changes.wanted     = currentWanted; }
-		if (currentQtyOwned !== prevQtyOwned) { changes.qtyOwned   = currentQtyOwned; }
-		if (currentRating   !== prevRating)   { changes.userRating = currentRating; }
+		if (currentOwned  !== prevOwned)  { changes.owned  = currentOwned;  }
+		if (currentWanted !== prevWanted) { changes.wanted = currentWanted; }
+		// Only record a numeric change when the user actually has a value
+		// in frontmatter; removing the field is treated as "leave alone"
+		// rather than as a reset to 0/undefined.
+		if (currentQtyOwned !== prevQtyOwned && currentQtyOwned !== undefined) {
+			changes.qtyOwned = currentQtyOwned;
+		}
+		if (currentRating !== prevRating && currentRating !== undefined) {
+			changes.userRating = currentRating;
+		}
 
 		// Apply API ownership rules after all fields are compared
-		this.applyOwnershipRules(changes, currentOwned, currentQtyOwned);
+		this.applyOwnershipRules(changes, currentOwned, currentQtyOwned ?? 0);
 
 		if (Object.keys(changes).length === 0) return null;
 
@@ -132,7 +151,7 @@ export class SyncBackService {
 	private applyOwnershipRules(
 		changes: FrontmatterChange['changes'],
 		_currentOwned: boolean,
-		_currentQtyOwned: number
+		_currentQtyOwned: number,
 	): void {
 		// Rule 1: owned=false automatically resets qtyOwned to 0
 		if (changes.owned === false && changes.qtyOwned === undefined) {
@@ -158,7 +177,13 @@ export class SyncBackService {
 	}
 
 	/**
-	 * Process all queued changes
+	 * Process all queued changes.
+	 *
+	 * If invoked while a previous flush is still running, the call bails out
+	 * — but the in-flight flush re-arms the debounce timer at the end if any
+	 * changes have been queued during processing, so nothing is lost. Earlier
+	 * versions silently dropped those mid-flight changes until an unrelated
+	 * future edit happened to schedule another flush.
 	 */
 	private async processQueue(): Promise<void> {
 		if (this.changeQueue.size === 0 || this.isProcessing) {
@@ -170,27 +195,39 @@ export class SyncBackService {
 		const changes = Array.from(this.changeQueue.values());
 		this.changeQueue.clear();
 
-		for (const change of changes) {
-			try {
-				await this.syncToApi(change);
-			} catch (error) {
+		try {
+			for (const change of changes) {
+				try {
+					await this.syncToApi(change);
+				} catch (error) {
 					console.error("Failed to sync %s:", change.file.path, error);
-					
+
 					if (this.settings.showSyncNotifications) {
 						const safeName = change.file.basename.replaceAll(/[\r\n]/g, '_');
 						const safeMsg = (error instanceof Error ? error.message : String(error)).replaceAll(/[\r\n]/g, '_');
 						new Notice(`Failed to sync ${safeName} to Brickset: ${safeMsg}`);
 					}
+				}
+
+				// Small delay between API calls to avoid rate limiting
+				await this.delay(100);
 			}
 
-			// Small delay between API calls to avoid rate limiting
-			await this.delay(100);
+			// Save updated cache before releasing the lock so a concurrent
+			// flush attempt can't observe a half-saved state.
+			await this.stateCache.save();
+		} finally {
+			// Hand off any work that arrived while we were flushing before
+			// we release the lock — keeps the rescheduling synchronous and
+			// guarantees concurrent processQueue() calls during the awaits
+			// above (which all bailed at the `isProcessing` guard) don't
+			// get permanently dropped.
+			const hasMore = this.changeQueue.size > 0;
+			this.isProcessing = false;
+			if (hasMore) {
+				this.scheduleProcessing();
+			}
 		}
-
-		this.isProcessing = false;
-
-		// Save updated cache
-		await this.stateCache.save();
 	}
 
 	/**

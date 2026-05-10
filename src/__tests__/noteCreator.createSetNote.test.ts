@@ -304,6 +304,65 @@ describe('NoteCreator - createSetNote()', () => {
 			expect(content).not.toContain('subtheme:');
 		});
 
+		// Regression: previously `escapeYaml` only handled `"`, leaving
+		// backslashes, newlines, and control characters in API-supplied
+		// fields free to corrupt the frontmatter. The fix routes scalars
+		// through `JSON.stringify`, which produces a valid YAML 1.2
+		// double-quoted scalar for any input.
+		it('should produce parseable frontmatter even when set fields contain YAML metacharacters', async (): Promise<void> => {
+			const set = makeSet({
+				number: 'A\\B"C',
+				name: 'Millennium Falcon',
+				theme: 'Star\nWars',
+				subtheme: 'Tab\there',
+			});
+			mockFileNotExistsThenExists(app);
+
+			await creator.createSetNote(set, []);
+
+			const content = getNoteContent(app);
+			expect(content).toContain(String.raw`setNumber: "A\\B\"C"`);
+			expect(content).toContain(String.raw`theme: "Star\nWars"`);
+			expect(content).toContain(String.raw`subtheme: "Tab\there"`);
+			expect(content).not.toContain('theme: "Star\nWars"'); // raw newline must be escaped
+		});
+	});
+
+	describe('Frontmatter YAML escaping (regression)', () => {
+		// Sanity-check that the formatYamlString helper produces YAML scalars
+		// that parse back to the original string. We do not depend on a YAML
+		// parser here; instead we verify that no raw control characters and
+		// no unbalanced quotes leak through.
+		it('should produce balanced double quotes around set string fields', async (): Promise<void> => {
+			const set = makeSet({
+				number: '10497',
+				name: 'Galaxy Explorer',
+				theme: '"Quoted" Theme',
+				subtheme: 'A\\B',
+			});
+			mockFileNotExistsThenExists(app);
+
+			await creator.createSetNote(set, []);
+
+			const content = getNoteContent(app);
+			const frontmatterEnd = content.indexOf('\n---', 4); // skip leading '---\n'
+			expect(frontmatterEnd).toBeGreaterThan(0);
+			const frontmatter = content.slice(0, frontmatterEnd);
+
+			// No raw newlines inside any value (each field on its own line)
+			const valueLines = frontmatter.split('\n').filter(l => /^(setNumber|theme|subtheme):/.test(l));
+			for (const line of valueLines) {
+				const value = line.slice(line.indexOf(':') + 1).trim();
+				// JSON-stringified strings always start and end with a "
+				expect(value.startsWith('"') && value.endsWith('"')).toBe(true);
+				// And the inner quotes are escaped, so an even number of
+				// unescaped quotes is a corruption signal.
+				const unescaped = value.replaceAll(String.raw`\\`, '').replaceAll(String.raw`\"`, '');
+				const quoteCount = (unescaped.match(/"/g) || []).length;
+				expect(quoteCount).toBe(2);
+			}
+		});
+
 		it('should write qtyOwned: 0 to frontmatter when collection resets quantity to zero', async (): Promise<void> => {
 			// Regression: falsy check `if (collection.qtyOwned)` would skip qtyOwned=0,
 			// leaving a stale non-zero value in the note after a Brickset → Obsidian sync.
