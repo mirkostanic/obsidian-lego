@@ -170,6 +170,10 @@ npm run lint
 
 # Run lint and attempt fix
 npm run lint:fix
+
+# Bump version
+npm version X.Y.Z
+npm run version
 ```
 
 ### Project Structure

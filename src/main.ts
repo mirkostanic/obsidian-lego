@@ -81,14 +81,9 @@ export default class BricksetPlugin extends Plugin {
 		}
 	}
 
-	// `onunload` is typed as `() => void` on Obsidian's `Component` base class,
-	// but in practice the plugin loader awaits a returned Promise — see
-	// existing community plugins that use `async onunload`. Returning a
-	// Promise here lets us await the final state-cache save so pending
-	// deltas aren't dropped when Obsidian shuts down or the plugin is
-	// disabled. The previous fire-and-forget `.catch(...)` could let the IO
-	// be torn down mid-flight.
-	// eslint-disable-next-line @typescript-eslint/no-misused-promises
+	// Returning a Promise here lets us await the final state-cache save so
+	// pending deltas aren't dropped when Obsidian shuts down or the plugin
+	// is disabled.
 	async onunload(): Promise<void> {
 		this.stopSyncBack();
 
