@@ -195,7 +195,7 @@ export class SyncService {
 			let additionalImages: AdditionalImage[] = [];
 			if (this.settings.downloadImagesOnSync) {
 				if (existingFile) {
-					additionalImages = this.resolveLocalAdditionalImages(imagesFolderPath, set.image?.imageURL);
+					additionalImages = this.resolveLocalAdditionalImages(imagesFolderPath);
 				} else {
 					try {
 						additionalImages = await this.apiService.getAdditionalImages(set.setID);
@@ -226,12 +226,9 @@ export class SyncService {
 	 * objects so NoteCreator can include them in the note without an API call.
 	 *
 	 * @param imagesFolderPath  Vault path to the set's `images/` sub-folder
-	 * @param mainImageUrl      The set's primary image URL (used as imageURL for
-	 *                          the main image; additional images use a placeholder)
 	 */
 	private resolveLocalAdditionalImages(
 		imagesFolderPath: string,
-		mainImageUrl: string | undefined
 	): AdditionalImage[] {
 		const images: AdditionalImage[] = [];
 		for (let i = 1; ; i++) {
@@ -273,7 +270,7 @@ export class SyncService {
 				return await fn();
 			} catch (error) {
 				if (i >= attempts - 1) throw error;
-				await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+				await new Promise(resolve => activeWindow.setTimeout(resolve, 500 * (i + 1)));
 			}
 		}
 	}

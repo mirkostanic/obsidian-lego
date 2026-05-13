@@ -343,6 +343,25 @@ describe('BricksetSettingTab', () => {
 			});
 			await expect(capturedHandlers.onClick['Brickset password']?.()).resolves.not.toThrow();
 		});
+
+		// Exercises the `: String(error)` branch of the catch block at
+		// settings.ts:106 — login() rejects with a non-Error value, so the
+		// `error instanceof Error` guard is false and the Notice falls through
+		// to `String(error)`.
+		it('should stringify non-Error rejection from login', async () => {
+			const { BricksetApiService, BRICKSET_API_KEY } = await import('../bricksetApi');
+			const { Notice } = await import('obsidian');
+			const noticeSpy = vi.mocked(Notice);
+			noticeSpy.mockClear();
+			vi.mocked(BricksetApiService).mockImplementation(function() {
+				return { login: vi.fn().mockRejectedValue('plain string rejection'), validateKey: vi.fn() } as any;
+			});
+
+			await capturedHandlers.onClick['Brickset password']?.();
+
+			expect(BRICKSET_API_KEY).toBeDefined();
+			expect(noticeSpy).toHaveBeenCalledWith('Login failed: plain string rejection');
+		});
 	});
 
 	describe('display() - lastSyncTimestamp branch coverage', () => {

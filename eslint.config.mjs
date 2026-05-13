@@ -61,16 +61,15 @@ export default defineConfig([
 			"import/no-extraneous-dependencies": "off",
 		},
 	},
-	// Brickset JSON and similar APIs are typed loosely; keep other Obsidian rules strict.
+	// Plugin source: keep TypeScript safety rules on so regressions surface in CI.
+	// The Brickset API responses are routed through a typed `fetchJson<T>` helper
+	// in `src/bricksetApi.ts`; the `cache.frontmatter` reads in `syncBackService.ts`
+	// are narrowed via the `LegoSetFrontmatter` cast. Other unsafe-any sources
+	// (errors in catch blocks, `JSON.parse`, `loadData`) are explicitly narrowed.
 	{
 		files: ["src/**/*.ts"],
 		ignores: ["**/*.test.ts", "**/__tests__/**", "**/__mocks__/**"],
 		rules: {
-			"@typescript-eslint/no-unsafe-assignment": "off",
-			"@typescript-eslint/no-unsafe-member-access": "off",
-			"@typescript-eslint/no-unsafe-call": "off",
-			"@typescript-eslint/no-unsafe-argument": "off",
-			"@typescript-eslint/no-unsafe-return": "off",
 			"@typescript-eslint/no-explicit-any": "warn",
 			"obsidianmd/ui/sentence-case": "warn",
 		},

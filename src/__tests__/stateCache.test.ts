@@ -74,6 +74,31 @@ describe('StateCache', () => {
 
 			expect(cache.size()).toBe(0);
 		});
+
+		// Exercises the `else { this.cache = new Map(); }` branch on
+		// stateCache.ts:45 — JSON.parse succeeds but produces a non-object
+		// value (number, string, null), so the `parsed && typeof parsed ===
+		// 'object'` guard is false and the cache is reset to empty without
+		// throwing.
+		it('should fall back to empty cache when parsed JSON is not an object (null)', async () => {
+			const stubFile = { path: '.obsidian/plugins/brickset/state-cache.json' };
+			app.vault.getFileByPath.mockReturnValue(stubFile);
+			app.vault.read.mockResolvedValue('null');
+
+			await cache.load();
+
+			expect(cache.size()).toBe(0);
+		});
+
+		it('should fall back to empty cache when parsed JSON is a primitive (number)', async () => {
+			const stubFile = { path: '.obsidian/plugins/brickset/state-cache.json' };
+			app.vault.getFileByPath.mockReturnValue(stubFile);
+			app.vault.read.mockResolvedValue('42');
+
+			await cache.load();
+
+			expect(cache.size()).toBe(0);
+		});
 	});
 
 	describe('save()', () => {

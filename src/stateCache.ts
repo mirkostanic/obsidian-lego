@@ -37,8 +37,13 @@ export class StateCache {
 			}
 
 			const data = await this.app.vault.read(file);
-			const parsed = JSON.parse(data);
-			this.cache = new Map(Object.entries(parsed));
+			const parsed = JSON.parse(data) as unknown;
+			if (parsed && typeof parsed === 'object') {
+				const entries = Object.entries(parsed as Record<string, CachedState>);
+				this.cache = new Map(entries);
+			} else {
+				this.cache = new Map();
+			}
 			this.isDirty = false;
 		} catch (error) {
 			console.error('Failed to load state cache:', error);

@@ -630,3 +630,40 @@ describe('BricksetApiService - getCollection()', () => {
 		expect(err.message).not.toContain('Failed to fetch collection: Failed to fetch collection');
 	});
 });
+
+// ---------------------------------------------------------------------------
+// errorMessage() non-Error throwable branch (bricksetApi.ts:31)
+//
+// Every wrapper that funnels caught errors through `errorMessage(error)`
+// reads `.message` only when `error instanceof Error`. The non-Error branch
+// is reached when `requestUrl` rejects with a non-Error value (string, number,
+// plain object) — surfacing as `String(error)` in the wrapped BricksetApiError.
+// One test per wrapper would be redundant; one exhaustive test covers the
+// branch since the helper is shared.
+// ---------------------------------------------------------------------------
+describe('BricksetApiService - errorMessage() non-Error branch', () => {
+	let service: BricksetApiService;
+
+	beforeEach(() => {
+		service = new BricksetApiService('test-api-key', 'test-user-hash');
+		vi.clearAllMocks();
+	});
+
+	it('should stringify a non-Error rejection value (login)', async () => {
+		mockRequestUrl.mockRejectedValue('plain string rejection');
+
+		const err = await service.login('user', 'pass').catch(e => e);
+
+		expect(err).toBeInstanceOf(BricksetApiError);
+		expect(err.message).toBe('Login failed: plain string rejection');
+	});
+
+	it('should stringify a non-Error rejection value (getSets)', async () => {
+		mockRequestUrl.mockRejectedValue(42);
+
+		const err = await service.getSets({ theme: 'Friends' }).catch(e => e);
+
+		expect(err).toBeInstanceOf(BricksetApiError);
+		expect(err.message).toBe('Failed to fetch sets: 42');
+	});
+});

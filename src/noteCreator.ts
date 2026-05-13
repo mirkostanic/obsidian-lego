@@ -143,8 +143,8 @@ export class NoteCreator {
 			await this.app.vault.create(filePath, content);
 			new Notice(`Created: ${label}`);
 		} catch (error) {
-			const errorMessage = error?.message || String(error);
-			if (!errorMessage.includes('already exists')) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (!message.includes('already exists')) {
 				throw error;
 			}
 			// File was created by another process — update it
@@ -190,13 +190,12 @@ export class NoteCreator {
 			try {
 				await this.app.vault.createBinary(filePath, response.arrayBuffer);
 			} catch (error) {
-				// Check if error is "File already exists"
-				const errorMessage = error?.message || String(error);
-				if (errorMessage.includes('File already exists') || errorMessage.includes('already exists')) {
+				const message = error instanceof Error ? error.message : String(error);
+				if (message.includes('File already exists') || message.includes('already exists')) {
 					// File was created by another process, that's fine
 					return filePath;
 				}
-				throw error; // Re-throw if it's a real error
+				throw error;
 			}
 			
 			return filePath;
@@ -429,17 +428,16 @@ export class NoteCreator {
 			try {
 				await this.app.vault.createFolder(normalizedPath);
 			} catch (error) {
-				// Check if error is "Folder already exists"
-				const errorMessage = error?.message || String(error);
-				if (errorMessage.includes('Folder already exists')) {
-					// This is fine, folder was created by another process
+				const message = error instanceof Error ? error.message : String(error);
+				if (message.includes('Folder already exists')) {
+					// Folder was created by another process — nothing to do.
 					return;
 				}
-				
+
 				// For other errors, check if folder exists now
 				const folderNow = this.app.vault.getAbstractFileByPath(normalizedPath);
 				if (!folderNow || !(folderNow instanceof TFolder)) {
-					throw error; // Re-throw if it's a real error
+					throw error;
 				}
 			}
 		} else if (!(folder instanceof TFolder)) {

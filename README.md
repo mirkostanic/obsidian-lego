@@ -7,7 +7,6 @@ An Obsidian plugin that integrates with the Brickset API to fetch LEGO set infor
 - **Fetch LEGO Sets by Number** - Simply enter a set number to retrieve complete set information
 - **Automatic Note Creation** - Creates formatted markdown notes with all set details
 - **Image Integration** - Downloads and embeds set images directly in your notes
-- **Easy Configuration** - Simple settings interface for API key management
 - **Rich Set Data** - Includes pieces, minifigs, pricing, ratings, and more
 - **Metadata Support** - Adds frontmatter tags for easy organization
 
@@ -37,8 +36,6 @@ An Obsidian plugin that integrates with the Brickset API to fetch LEGO set infor
 3. (Optional) Configure the folder where LEGO set notes will be created
 4. (Optional) Enter your Brickset username and password for personalized features
 5. Click "Save Settings"
-
-The plugin will automatically validate your API key when you save.
 
 ## Usage
 
@@ -91,10 +88,11 @@ pieces: 7541
 - **Rating:** 4.8/5
 
 ## Description
-[Set description from Brickset]
+The full set description fetched from Brickset appears here.
 
 ## Additional Images
-[Additional set images]
+![Additional Image 1](images/additional-1.jpg)
+![Additional Image 2](images/additional-2.jpg)
 
 ## Links
 - [Brickset Page](https://brickset.com/sets/75192-1)
@@ -105,10 +103,6 @@ pieces: 7541
 
 ## Settings
 
-### Required Settings
-
-- **Brickset API Key** - Your API key from Brickset (required)
-
 ### Optional Settings
 
 - **LEGO Sets Folder** - Folder where notes will be created (default: "LEGO Sets")
@@ -116,12 +110,6 @@ pieces: 7541
 - **Brickset Password** - Your Brickset password (for personalized features)
 
 ## Troubleshooting
-
-### "Invalid API Key" Error
-
-- Verify your API key is correct in settings
-- Check that you copied the entire key without extra spaces
-- Request a new API key if needed
 
 ### "Set Not Found" Error
 
@@ -182,11 +170,11 @@ npm run version
 obsidian-lego/
 ├── src/
 │   ├── main.ts              # Main plugin class
-│   ├── settings.ts          # Settings management
-│   ├── stateCache.ts        # Settings management
-│   ├── syncBackService.ts   # Settings management
-│   ├── syncService.ts       # Settings management
-│   ├── bricksetApi.ts       # API service
+│   ├── settings.ts          # Settings tab + persistence
+│   ├── stateCache.ts        # On-disk cache of previously synced frontmatter
+│   ├── syncBackService.ts   # Obsidian → Brickset bidirectional sync
+│   ├── syncService.ts       # Brickset → Obsidian collection sync
+│   ├── bricksetApi.ts       # Brickset HTTP API service
 │   ├── types.ts             # Type definitions
 │   ├── noteCreator.ts       # Note generation
 │   └── modal.ts             # User input modal
@@ -198,7 +186,7 @@ obsidian-lego/
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome. Please feel free to submit a Pull Request.
 
 ### Development Guidelines
 
@@ -233,4 +221,4 @@ MIT License - see LICENSE file for details
 
 ## Disclaimer
 
-This plugin is not affiliated with, endorsed by, or sponsored by the LEGO Group or Brickset. LEGO® is a trademark of the LEGO Group of companies which does not sponsor, authorize or endorse this plugin.
+This plugin is not affiliated with, endorsed by, or sponsored by the LEGO Group or Brickset. LEGO® is a trademark of the LEGO Group of companies which does not sponsor, authorize or endorse this plugin. See [DISCLAIMER.md](DISCLAIMER.md) for full text.

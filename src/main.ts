@@ -13,7 +13,7 @@ export default class BricksetPlugin extends Plugin {
 	private apiService: BricksetApiService | null = null;
 	private syncBackService: SyncBackService | null = null;
 	private stateCache: StateCache | null = null;
-	private stateCacheTimer: ReturnType<typeof setInterval> | null = null;
+	private stateCacheTimer: number | null = null;
 
 	constructor(app: App, manifest: PluginManifest) {
 		super(app, manifest);
@@ -25,7 +25,7 @@ export default class BricksetPlugin extends Plugin {
 		this.stateCache = new StateCache(this.app, this.manifest.dir || '');
 		await this.stateCache.load();
 
-		this.stateCacheTimer = setInterval(() => {
+		this.stateCacheTimer = activeWindow.setInterval(() => {
 			this.stateCache?.save().catch(err =>
 				console.error('Brickset: periodic state cache save failed', err)
 			);
@@ -87,8 +87,8 @@ export default class BricksetPlugin extends Plugin {
 	async onunload(): Promise<void> {
 		this.stopSyncBack();
 
-		if (this.stateCacheTimer) {
-			clearInterval(this.stateCacheTimer);
+		if (this.stateCacheTimer !== null) {
+			activeWindow.clearInterval(this.stateCacheTimer);
 			this.stateCacheTimer = null;
 		}
 
@@ -102,7 +102,8 @@ export default class BricksetPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = { ...DEFAULT_SETTINGS, ...await this.loadData() };
+		const loaded = (await this.loadData()) as Partial<BricksetPluginSettings> | null;
+		this.settings = { ...DEFAULT_SETTINGS, ...(loaded ?? {}) };
 	}
 
 	async saveSettings() {
@@ -180,7 +181,8 @@ export default class BricksetPlugin extends Plugin {
 					new Notice(`API error: ${error.message}`);
 				}
 			} else {
-				new Notice(`Error: ${error.message}`);
+				const message = error instanceof Error ? error.message : String(error);
+				new Notice(`Error: ${message}`);
 			}
 
 			console.error('Failed to fetch lego set:', error);

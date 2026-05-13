@@ -24,7 +24,7 @@ interface FrontmatterChange {
  */
 export class SyncBackService {
 	private readonly changeQueue: Map<string, FrontmatterChange> = new Map();
-	private processingTimer: NodeJS.Timeout | null = null;
+	private processingTimer: number | null = null;
 	private isProcessing: boolean = false;
 
 	constructor(
@@ -46,8 +46,8 @@ export class SyncBackService {
 	 * Clear debounce timer (e.g. when bidirectional sync is disabled).
 	 */
 	stopWatching(): void {
-		if (this.processingTimer) {
-			clearTimeout(this.processingTimer);
+		if (this.processingTimer !== null) {
+			activeWindow.clearTimeout(this.processingTimer);
 			this.processingTimer = null;
 		}
 	}
@@ -65,12 +65,13 @@ export class SyncBackService {
 		const cache = this.app.metadataCache.getFileCache(file);
 		if (!cache?.frontmatter) return;
 
-		const setID = cache.frontmatter.setID;
-		if (!setID || typeof setID !== 'number') return;
+		const frontmatter = cache.frontmatter as LegoSetFrontmatter;
+		const rawSetID: unknown = frontmatter['setID'];
+		if (typeof rawSetID !== 'number') return;
 
-		const change = this.detectChanges(file, cache.frontmatter);
+		const change = this.detectChanges(file, frontmatter);
 		if (!change) {
-			this.stateCache.updateFromFrontmatter(file.path, cache.frontmatter);
+			this.stateCache.updateFromFrontmatter(file.path, frontmatter);
 			return;
 		}
 
@@ -131,10 +132,12 @@ export class SyncBackService {
 
 		if (Object.keys(changes).length === 0) return null;
 
-		// onMetadataChanged already ensures setID is a number before calling detectChanges.
+		// onMetadataChanged narrows setID to a number before calling detectChanges,
+		// so the unknown→number cast here is safe.
+		const setID = frontmatter['setID'] as number;
 		return {
 			file,
-			setID: frontmatter['setID'] as number,
+			setID,
 			changes,
 			timestamp: Date.now()
 		};
@@ -167,11 +170,11 @@ export class SyncBackService {
 	 * Schedule queue processing with debounce
 	 */
 	private scheduleProcessing(): void {
-		if (this.processingTimer) {
-			clearTimeout(this.processingTimer);
+		if (this.processingTimer !== null) {
+			activeWindow.clearTimeout(this.processingTimer);
 		}
 
-		this.processingTimer = setTimeout(() => {
+		this.processingTimer = activeWindow.setTimeout(() => {
 			void this.processQueue();
 		}, this.settings.syncDebounceMs || 2000);
 	}
@@ -250,7 +253,10 @@ export class SyncBackService {
 
 		const cache = this.app.metadataCache.getFileCache(change.file);
 		if (cache?.frontmatter) {
-			this.stateCache.updateFromFrontmatter(change.file.path, cache.frontmatter);
+			this.stateCache.updateFromFrontmatter(
+				change.file.path,
+				cache.frontmatter as LegoSetFrontmatter,
+			);
 		}
 
 		if (this.settings.showSyncNotifications) {
@@ -262,12 +268,12 @@ export class SyncBackService {
 	 * Update file frontmatter with the changes (including automatic ones)
 	 */
 	private async updateFileFrontmatter(file: TFile, changes: FrontmatterChange['changes']): Promise<void> {
-		await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+		await this.app.fileManager.processFrontMatter(file, (fm: LegoSetFrontmatter) => {
 			const { owned, wanted, qtyOwned, userRating } = changes;
-			if (owned      !== undefined) frontmatter.owned      = owned;
-			if (wanted     !== undefined) frontmatter.wanted     = wanted;
-			if (qtyOwned   !== undefined) frontmatter.qtyOwned   = qtyOwned;
-			if (userRating !== undefined) frontmatter.userRating = userRating;
+			if (owned      !== undefined) fm['owned']      = owned;
+			if (wanted     !== undefined) fm['wanted']     = wanted;
+			if (qtyOwned   !== undefined) fm['qtyOwned']   = qtyOwned;
+			if (userRating !== undefined) fm['userRating'] = userRating;
 		});
 	}
 
@@ -275,13 +281,15 @@ export class SyncBackService {
 	 * Check if file is a LEGO set note
 	 */
 	private isLegoSetNote(file: TFile): boolean {
-		const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+		const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter as
+			| LegoSetFrontmatter
+			| undefined;
 		if (!frontmatter) return false;
-		const tags = frontmatter.tags;
+		const tags: unknown = frontmatter['tags'];
 		return Array.isArray(tags)
 			&& tags.includes('lego')
 			&& tags.includes('set')
-			&& frontmatter.setID !== undefined;
+			&& frontmatter['setID'] !== undefined;
 	}
 
 	/**
@@ -297,31 +305,31 @@ export class SyncBackService {
 			throw new Error('No frontmatter found');
 		}
 
-		const setID = cache.frontmatter.setID;
-		if (!setID) {
+		const fm = cache.frontmatter as LegoSetFrontmatter;
+		const rawSetID: unknown = fm['setID'];
+		if (typeof rawSetID !== 'number') {
 			throw new Error('No setID in frontmatter');
 		}
+		const setID = rawSetID;
 
-		// Build flags from current frontmatter
-		const fm = cache.frontmatter as LegoSetFrontmatter;
 		const flags: Parameters<BricksetApiService['setUserFlags']>[1] = {
 			own: Boolean(fm['owned']),
 			want: Boolean(fm['wanted'])
 		};
 
 		const qtyOwned = fm['qtyOwned'];
-		if (qtyOwned !== undefined && typeof qtyOwned === 'number') {
+		if (typeof qtyOwned === 'number') {
 			flags.qtyOwned = qtyOwned;
 		}
 		const userRating = fm['userRating'];
-		if (userRating !== undefined && typeof userRating === 'number') {
+		if (typeof userRating === 'number') {
 			flags.rating = userRating;
 		}
 
 		const success = await this.apiService.setUserFlags(setID, flags);
 
 		if (success) {
-			this.stateCache.updateFromFrontmatter(file.path, cache.frontmatter);
+			this.stateCache.updateFromFrontmatter(file.path, fm);
 			await this.stateCache.save();
 		}
 
@@ -346,6 +354,6 @@ export class SyncBackService {
 	 * Utility delay function
 	 */
 	private delay(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
+		return new Promise(resolve => activeWindow.setTimeout(resolve, ms));
 	}
 }

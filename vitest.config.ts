@@ -6,6 +6,7 @@ export default defineConfig({
 		globals: true,
 		environment: 'node',
 		pool: 'forks',
+		setupFiles: ['src/__tests__/setup.ts'],
 		include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
 		coverage: {
 			provider: 'v8',
@@ -13,6 +14,7 @@ export default defineConfig({
 			include: ['src/**/*.ts'],
 			exclude: [
 				'src/__mocks__/**',
+				'src/__tests__/setup.ts',
 				'src/**/*.test.ts',
 				'src/**/*.spec.ts',
 				'src/main.ts'  // Plugin entry point - no test

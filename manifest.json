@@ -6,5 +6,6 @@
 	"author": "Mirko Stanić",
 	"authorUrl": "https://mirko.stanic.one",
 	"isDesktopOnly": false,
-	"version": "0.8.0"
+	"version": "0.8.0",
+	"license": "MIT"
 }

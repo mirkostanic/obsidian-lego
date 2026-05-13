@@ -8,7 +8,8 @@ import {
 	GetSetsParams,
 	LegoSet,
 	AdditionalImage,
-	CollectionEntry
+	CollectionEntry,
+	BricksetApiResponse,
 } from './types';
 
 /** Hardcoded Brickset API key used for all requests */
@@ -20,6 +21,14 @@ interface SetCollectionParams {
 	qtyOwned?: number;
 	rating?: number;
 	notes?: string;
+}
+
+/**
+ * Narrow an unknown caught error into a human-readable message.
+ * Keeps `catch (error)` bindings safely typed throughout the service.
+ */
+function errorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }
 
 export class BricksetApiError extends Error {
@@ -56,6 +65,22 @@ export class BricksetApiService {
 	}
 
 	/**
+	 * Issue an HTTP request and parse the JSON body as a typed
+	 * Brickset API response. The double cast through `unknown`
+	 * launders the `any` returned by `requestUrl(...).json` so the
+	 * rest of the service can treat each response as a concrete
+	 * interface (no `any` flows into the call sites).
+	 */
+	private async fetchJson<T extends BricksetApiResponse>(
+		url: string,
+		init?: { method?: string; contentType?: string; body?: string },
+	): Promise<{ data: T; status: number }> {
+		const response = await requestUrl({ url, ...(init ?? {}) });
+		const data = response.json as unknown as T;
+		return { data, status: response.status };
+	}
+
+	/**
 	 * Validate the user hash
 	 */
 	async validateUserHash(): Promise<boolean> {
@@ -65,8 +90,7 @@ export class BricksetApiService {
 
 		try {
 			const url = `${this.baseUrl}/checkUserHash?apiKey=${encodeURIComponent(this.apiKey)}&userHash=${encodeURIComponent(this.userHash)}`;
-			const response = await requestUrl({ url });
-			const data: CheckKeyResponse = response.json;
+			const { data } = await this.fetchJson<CheckKeyResponse>(url);
 			return data.status === 'success';
 		} catch (error) {
 			console.error('User hash validation failed:', error);
@@ -80,8 +104,7 @@ export class BricksetApiService {
 	async validateKey(): Promise<boolean> {
 		try {
 			const url = `${this.baseUrl}/checkKey?apiKey=${encodeURIComponent(this.apiKey)}`;
-			const response = await requestUrl({ url });
-			const data: CheckKeyResponse = response.json;
+			const { data } = await this.fetchJson<CheckKeyResponse>(url);
 			return data.status === 'success';
 		} catch (error) {
 			console.error('API key validation failed:', error);
@@ -103,13 +126,14 @@ export class BricksetApiService {
 				username,
 				password,
 			}).toString();
-			const response = await requestUrl({
-				url: `${this.baseUrl}/login`,
-				method: 'POST',
-				contentType: 'application/x-www-form-urlencoded',
-				body,
-			});
-			const data: LoginResponse = response.json;
+			const { data, status } = await this.fetchJson<LoginResponse>(
+				`${this.baseUrl}/login`,
+				{
+					method: 'POST',
+					contentType: 'application/x-www-form-urlencoded',
+					body,
+				},
+			);
 
 			if (data.status === 'success' && data.hash) {
 				this.userHash = data.hash;
@@ -117,8 +141,8 @@ export class BricksetApiService {
 			}
 
 			throw new BricksetApiError(
-				data.message || 'Login failed',
-				response.status,
+				data.message ?? 'Login failed',
+				status,
 				data.status
 			);
 		} catch (error) {
@@ -126,7 +150,7 @@ export class BricksetApiService {
 				throw error;
 			}
 			throw new BricksetApiError(
-				`Login failed: ${error.message}`,
+				`Login failed: ${errorMessage(error)}`,
 				undefined,
 				'error'
 			);
@@ -139,7 +163,7 @@ export class BricksetApiService {
 	async getSetByNumber(setNumber: string): Promise<LegoSet> {
 		// Clean the set number (remove any spaces or dashes)
 		const cleanSetNumber = setNumber.trim().replaceAll(/\s+/g, '');
-		
+
 		// Try with the exact number first
 		let params: GetSetsParams = {
 			setNumber: cleanSetNumber,
@@ -148,7 +172,7 @@ export class BricksetApiService {
 		};
 
 		let sets = await this.getSets(params);
-		
+
 		// If no results and the number doesn't have a variant suffix, try adding -1
 		if (sets.length === 0 && !cleanSetNumber.includes('-')) {
 			params = {
@@ -158,7 +182,7 @@ export class BricksetApiService {
 			};
 			sets = await this.getSets(params);
 		}
-		
+
 		if (sets.length === 0) {
 			throw new BricksetApiError(
 				`Set ${setNumber} not found. Please verify the set number exists on Brickset.com`,
@@ -212,20 +236,19 @@ export class BricksetApiService {
 
 		try {
 			const url = `${this.baseUrl}/getCollection?apiKey=${encodeURIComponent(this.apiKey)}&userHash=${encodeURIComponent(this.userHash)}`;
-			const response = await requestUrl({ url });
-			const data: GetCollectionResponse = response.json;
+			const { data, status } = await this.fetchJson<GetCollectionResponse>(url);
 
 			if (data.status === 'success') return data.sets || [];
 
 			throw new BricksetApiError(
-				data.message || 'Failed to fetch collection',
-				response.status,
+				data.message ?? 'Failed to fetch collection',
+				status,
 				data.status
 			);
 		} catch (error) {
 			if (error instanceof BricksetApiError) throw error;
 			throw new BricksetApiError(
-				`Failed to fetch collection: ${error.message}`,
+				`Failed to fetch collection: ${errorMessage(error)}`,
 				undefined,
 				'error'
 			);
@@ -258,20 +281,19 @@ export class BricksetApiService {
 
 		try {
 			const url = `${this.baseUrl}/getSets?apiKey=${encodeURIComponent(this.apiKey)}&userHash=${encodeURIComponent(this.userHash)}&params=${encodeURIComponent(JSON.stringify(params))}`;
-			const response = await requestUrl({ url });
-			const data: GetSetsResponse = response.json;
+			const { data, status } = await this.fetchJson<GetSetsResponse>(url);
 
 			if (data.status === 'success') return data;
 
 			throw new BricksetApiError(
-				data.message || `Failed to fetch ${type} sets`,
-				response.status,
+				data.message ?? `Failed to fetch ${type} sets`,
+				status,
 				data.status
 			);
 		} catch (error) {
 			if (error instanceof BricksetApiError) throw error;
 			throw new BricksetApiError(
-				`Failed to fetch ${type} sets: ${error.message}`,
+				`Failed to fetch ${type} sets: ${errorMessage(error)}`,
 				undefined,
 				'error'
 			);
@@ -332,19 +354,17 @@ export class BricksetApiService {
 				SetID:    String(setID),
 				params:   JSON.stringify(paramsObj),
 			});
-			const url = `${this.baseUrl}/setCollection?${qs}`;
+			const url = `${this.baseUrl}/setCollection?${qs.toString()}`;
 
-			const response = await requestUrl({ url });
-
-			const data = response.json;
+			const { data, status } = await this.fetchJson<BricksetApiResponse>(url);
 
 			if (data.status === 'success') {
 				return true;
 			}
 
 			throw new BricksetApiError(
-				data.message || 'Failed to update collection flags',
-				response.status,
+				data.message ?? 'Failed to update collection flags',
+				status,
 				data.status
 			);
 		} catch (error) {
@@ -352,7 +372,7 @@ export class BricksetApiService {
 				throw error;
 			}
 			throw new BricksetApiError(
-				`Failed to update collection flags: ${error.message}`,
+				`Failed to update collection flags: ${errorMessage(error)}`,
 				undefined,
 				'error'
 			);
@@ -374,21 +394,20 @@ export class BricksetApiService {
 		try {
 			const paramsJson = JSON.stringify(params);
 			let url = `${this.baseUrl}/getSets?apiKey=${encodeURIComponent(this.apiKey)}&params=${encodeURIComponent(paramsJson)}`;
-			
+
 			if (this.userHash) {
 				url += `&userHash=${encodeURIComponent(this.userHash)}`;
 			}
 
-			const response = await requestUrl({ url });
-			const data: GetSetsResponse = response.json;
+			const { data, status } = await this.fetchJson<GetSetsResponse>(url);
 
 			if (data.status === 'success') {
 				return data.sets || [];
 			}
 
 			throw new BricksetApiError(
-				data.message || 'Failed to fetch sets',
-				response.status,
+				data.message ?? 'Failed to fetch sets',
+				status,
 				data.status
 			);
 		} catch (error) {
@@ -396,7 +415,7 @@ export class BricksetApiService {
 				throw error;
 			}
 			throw new BricksetApiError(
-				`Failed to fetch sets: ${error.message}`,
+				`Failed to fetch sets: ${errorMessage(error)}`,
 				undefined,
 				'error'
 			);
@@ -409,8 +428,7 @@ export class BricksetApiService {
 	async getAdditionalImages(setID: number): Promise<AdditionalImage[]> {
 		try {
 			const url = `${this.baseUrl}/getAdditionalImages?apiKey=${encodeURIComponent(this.apiKey)}&setID=${setID}`;
-			const response = await requestUrl({ url });
-			const data: GetAdditionalImagesResponse = response.json;
+			const { data, status } = await this.fetchJson<GetAdditionalImagesResponse>(url);
 
 			if (data.status === 'success') {
 				return data.additionalImages || [];
@@ -422,8 +440,8 @@ export class BricksetApiService {
 			}
 
 			throw new BricksetApiError(
-				data.message || 'Failed to fetch additional images',
-				response.status,
+				data.message ?? 'Failed to fetch additional images',
+				status,
 				data.status
 			);
 		} catch (error) {

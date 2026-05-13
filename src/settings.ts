@@ -103,7 +103,8 @@ export class BricksetSettingTab extends PluginSettingTab {
 			await this.plugin.saveSettings();
 			new Notice('Successfully logged in!');
 		} catch (error) {
-			new Notice(`Login failed: ${error.message}`);
+			const message = error instanceof Error ? error.message : String(error);
+			new Notice(`Login failed: ${message}`);
 		}
 	}
 
