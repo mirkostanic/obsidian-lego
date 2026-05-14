@@ -1,6 +1,6 @@
 {
   "name": "brickset-lego",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "homepage": "https://github.com/mirkostanic/obsidian-lego#readme",
   "description": "Obsidian plugin to fetch LEGO set information from Brickset API",
   "main": "main.js",
