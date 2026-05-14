@@ -47,7 +47,7 @@ export class SyncBackService {
 	 */
 	stopWatching(): void {
 		if (this.processingTimer !== null) {
-			activeWindow.clearTimeout(this.processingTimer);
+			window.clearTimeout(this.processingTimer);
 			this.processingTimer = null;
 		}
 	}
@@ -171,10 +171,10 @@ export class SyncBackService {
 	 */
 	private scheduleProcessing(): void {
 		if (this.processingTimer !== null) {
-			activeWindow.clearTimeout(this.processingTimer);
+			window.clearTimeout(this.processingTimer);
 		}
 
-		this.processingTimer = activeWindow.setTimeout(() => {
+		this.processingTimer = window.setTimeout(() => {
 			void this.processQueue();
 		}, this.settings.syncDebounceMs || 2000);
 	}
@@ -354,6 +354,6 @@ export class SyncBackService {
 	 * Utility delay function
 	 */
 	private delay(ms: number): Promise<void> {
-		return new Promise(resolve => activeWindow.setTimeout(resolve, ms));
+		return new Promise(resolve => window.setTimeout(resolve, ms));
 	}
 }

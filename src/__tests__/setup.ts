@@ -1,14 +1,15 @@
 /**
- * Test setup: provide the Obsidian-injected `activeWindow` / `activeDocument`
- * globals in the node test environment. In Obsidian's runtime these proxy to
- * the currently focused popout/main window; in node we just point them at
- * `globalThis` so timer calls like `activeWindow.setTimeout(...)` resolve to
- * the standard implementations.
+ * Test setup: provide Obsidian-like globals in the Node test environment.
+ * `activeWindow` / `activeDocument` proxy to the focused window in Obsidian;
+ * plugin code uses `window` for timers (community-review guideline). Here all
+ * of these point at `globalThis` so timer APIs resolve to Node's builtins.
  */
 const globalScope = globalThis as typeof globalThis & {
 	activeWindow?: typeof globalThis;
 	activeDocument?: unknown;
+	window?: Window & typeof globalThis;
 };
 
 globalScope.activeWindow = globalThis;
+globalScope.window = globalThis as unknown as Window & typeof globalThis;
 globalScope.activeDocument = globalScope.activeDocument ?? {};

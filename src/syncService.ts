@@ -194,14 +194,14 @@ export class SyncService {
 
 			let additionalImages: AdditionalImage[] = [];
 			if (this.settings.downloadImagesOnSync) {
-				if (existingFile) {
+				try {
+					additionalImages = await this.apiService.getAdditionalImages(set.setID);
+				} catch {
+					/* additional images are optional */
+				}
+				// Fall back to any files already saved when the API returns no URLs.
+				if (additionalImages.length === 0 && existingFile) {
 					additionalImages = this.resolveLocalAdditionalImages(imagesFolderPath);
-				} else {
-					try {
-						additionalImages = await this.apiService.getAdditionalImages(set.setID);
-					} catch {
-						/* additional images are optional */
-					}
 				}
 			}
 
@@ -223,7 +223,7 @@ export class SyncService {
 	 * NoteCreator saves additional images as `images/additional-1.jpg`,
 	 * `images/additional-2.jpg`, … inside the set folder.
 	 * Probe the vault for those files and build synthetic AdditionalImage
-	 * objects so NoteCreator can include them in the note without an API call.
+	 * objects when the API returned no additional images (offline / error / none).
 	 *
 	 * @param imagesFolderPath  Vault path to the set's `images/` sub-folder
 	 */
@@ -270,7 +270,7 @@ export class SyncService {
 				return await fn();
 			} catch (error) {
 				if (i >= attempts - 1) throw error;
-				await new Promise(resolve => activeWindow.setTimeout(resolve, 500 * (i + 1)));
+				await new Promise(resolve => window.setTimeout(resolve, 500 * (i + 1)));
 			}
 		}
 	}

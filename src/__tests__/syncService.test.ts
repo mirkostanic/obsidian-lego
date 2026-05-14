@@ -524,7 +524,7 @@ describe('SyncService - non-Error thrown branches', () => {
 	});
 });
 
-describe('SyncService - resolveLocalAdditionalImages() optimisation', () => {
+describe('SyncService - additional images when note already exists', () => {
 	let app: MockApp;
 	let apiService: BricksetApiService;
 	let noteCreator: NoteCreator;
@@ -538,10 +538,10 @@ describe('SyncService - resolveLocalAdditionalImages() optimisation', () => {
 		vi.spyOn(noteCreator, 'createSetNote').mockResolvedValue({} as any);
 	});
 
-	it('should skip getAdditionalImages API call for existing notes and use local images instead', async () => {
-		// Simulate: note file exists, and two additional images exist locally
+	it('should call getAdditionalImages for existing notes and merge in local files when API returns none', async () => {
+		// Simulate: note exists, Brickset returned no URLs (offline / truly none), vault has downloads
 		mockSingleOwnedSet(apiService);
-		const getAdditionalImagesSpy = vi.spyOn(apiService, 'getAdditionalImages');
+		const getAdditionalImagesSpy = vi.spyOn(apiService, 'getAdditionalImages').mockResolvedValue([]);
 
 		// The note file path that processSet constructs
 		const noteFilePath = 'LEGO Sets/Star Wars/75192-1 - Millennium Falcon/75192-1 - Millennium Falcon.md';
@@ -559,8 +559,7 @@ describe('SyncService - resolveLocalAdditionalImages() optimisation', () => {
 		const result = await service.syncCollection();
 
 		expect(result.success).toBe(true);
-		// getAdditionalImages must NOT have been called (optimisation)
-		expect(getAdditionalImagesSpy).not.toHaveBeenCalled();
+		expect(getAdditionalImagesSpy).toHaveBeenCalledWith(23351);
 		// createSetNote should have been called with the two reconstructed local images
 		expect(noteCreator.createSetNote).toHaveBeenCalledWith(
 			expect.objectContaining({ number: '75192-1' }),
@@ -596,10 +595,10 @@ describe('SyncService - resolveLocalAdditionalImages() optimisation', () => {
 		expect(noteCreator.createSetNote).toHaveBeenCalledTimes(3);
 	});
 
-	it('should return empty array from resolveLocalAdditionalImages when no local images exist', async () => {
-		// Simulate: note file exists, but no additional images in vault
+	it('should call getAdditionalImages for existing notes with no local extras', async () => {
+		// Simulate: note file exists, but no additional images in vault yet
 		mockSingleOwnedSet(apiService);
-		const getAdditionalImagesSpy = vi.spyOn(apiService, 'getAdditionalImages');
+		const getAdditionalImagesSpy = vi.spyOn(apiService, 'getAdditionalImages').mockResolvedValue([]);
 
 		const noteFilePath = 'LEGO Sets/Star Wars/75192-1 - Millennium Falcon/75192-1 - Millennium Falcon.md';
 
@@ -611,7 +610,7 @@ describe('SyncService - resolveLocalAdditionalImages() optimisation', () => {
 		const service = new SyncService(app, makeSettings({ downloadImagesOnSync: true }), apiService, noteCreator);
 		await service.syncCollection();
 
-		expect(getAdditionalImagesSpy).not.toHaveBeenCalled();
+		expect(getAdditionalImagesSpy).toHaveBeenCalledWith(23351);
 		expect(noteCreator.createSetNote).toHaveBeenCalledWith(
 			expect.objectContaining({ number: '75192-1' }),
 			[] // no local images found

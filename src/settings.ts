@@ -26,6 +26,11 @@ export class BricksetSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
+		containerEl.createEl('p', {
+			cls: 'setting-item-description',
+			text: 'Network: brickset is contacted only when you log in, fetch a set, run collection sync, or (if enabled below) sync note changes back to brickset. A background timer only saves a local state file in the plugin folder — it does not transmit data.',
+		});
+
 		this.renderFolderSection(containerEl);
 		this.renderAuthSection(containerEl);
 		this.renderCollectionSyncSection(containerEl);
@@ -224,7 +229,7 @@ export class BricksetSettingTab extends PluginSettingTab {
 		div.appendText(', ');
 		div.createEl('code', { text: 'Quantity owned' });
 		div.appendText(', or ');
-		div.createEl('code', { text: 'User ating' });
+		div.createEl('code', { text: 'User rating' });
 		div.appendText(
 			" properties in a LEGO set note's frontmatter, the plugin will automatically sync those changes to your Brickset.com account after the configured delay."
 		);

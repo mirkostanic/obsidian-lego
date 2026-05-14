@@ -25,7 +25,7 @@ export default class BricksetPlugin extends Plugin {
 		this.stateCache = new StateCache(this.app, this.manifest.dir || '');
 		await this.stateCache.load();
 
-		this.stateCacheTimer = activeWindow.setInterval(() => {
+		this.stateCacheTimer = window.setInterval(() => {
 			this.stateCache?.save().catch(err =>
 				console.error('Brickset: periodic state cache save failed', err)
 			);
@@ -88,7 +88,7 @@ export default class BricksetPlugin extends Plugin {
 		this.stopSyncBack();
 
 		if (this.stateCacheTimer !== null) {
-			activeWindow.clearInterval(this.stateCacheTimer);
+			window.clearInterval(this.stateCacheTimer);
 			this.stateCacheTimer = null;
 		}
 

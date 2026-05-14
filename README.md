@@ -12,7 +12,7 @@ An Obsidian plugin that integrates with the Brickset API to fetch LEGO set infor
 
 ## Installation
 
-### From Obsidian Community Plugins (Coming Soon)
+### From Obsidian Community Plugins
 
 1. Open Obsidian Settings
 2. Navigate to Community Plugins
@@ -125,9 +125,24 @@ The full set description fetched from Brickset appears here.
 
 ## Privacy & Security
 
-- No data is sent to any server except Brickset's official API
-- Optional username/password are stored in plaintext as the assumption is that the Obsidian app will remain on the users machine. It cojld be changed so that the password is not stored, only the user hash and the user has to reenter the password everytime the userHash expires. I chose the former option for convenience but am open to changing it.
-- All API calls use HTTPS encryption
+### Network and background behavior
+
+This plugin does not send periodic telemetry or background beacons. A short internal timer runs while the plugin is enabled only to save a local JSON cache file inside the plugin folder (`state-cache.json`) so bidirectional sync can detect your edits. That timer performs vault disk I/O only and does not open network connections.
+
+Data is sent to Brickset’s API over HTTPS only when you choose actions that require it, for example:
+
+- Logging in from settings
+- Running **Fetch LEGO Set**
+- Running **Sync LEGO collection from Brickset**
+- With **Enable bidirectional sync** turned on, updating qualifying fields in a LEGO note’s frontmatter (after the configured delay)
+
+Enabling the plugin alone does not start collection-wide or bidirectional API traffic; those depend on the commands and toggles above.
+
+### Credentials and encryption
+
+- No data is sent to any server except Brickset's official API.
+- Optional username and password are stored in plaintext on the assumption that your Obsidian vault stays on a machine you control. (You could instead avoid storing the password and re-enter it when the session hash expires.)
+- All API calls use HTTPS.
 
 ## Development
 
