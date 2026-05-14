@@ -90,7 +90,7 @@ describe('SyncBackService - detectChanges()', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(app, apiService, stateCache, {
@@ -346,7 +346,7 @@ describe('SyncBackService - lifecycle', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new SyncBackService(app, apiService, stateCache, {

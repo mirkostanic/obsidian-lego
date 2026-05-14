@@ -104,7 +104,7 @@ describe('SyncBackService - onMetadataChanged()', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(app, apiService, stateCache, makeSettings());
@@ -242,7 +242,7 @@ describe('SyncBackService - syncToApi()', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(app, apiService, stateCache, makeSettings());
@@ -418,7 +418,7 @@ describe('SyncBackService - processQueue()', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(app, apiService, stateCache, makeSettings());
@@ -586,7 +586,7 @@ describe('SyncBackService - syncFile()', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new SyncBackService(app, apiService, stateCache, makeSettings());
@@ -667,7 +667,7 @@ describe('SyncBackService - updateFileFrontmatter()', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(app, apiService, stateCache, makeSettings());
@@ -756,7 +756,7 @@ describe('SyncBackService - getQueueSize() and isCurrentlyProcessing()', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(app, apiService, stateCache, makeSettings());
@@ -791,7 +791,7 @@ describe('SyncBackService - syncFile() additional paths', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new SyncBackService(app, apiService, stateCache, makeSettings({ showSyncNotifications: true }));
@@ -834,7 +834,7 @@ describe('SyncBackService - onMetadataChanged() no-frontmatter path (lines 88-89
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(app, apiService, stateCache, makeSettings());
@@ -880,7 +880,7 @@ describe('SyncBackService - scheduleProcessing() timer callback (line 204)', () 
 	beforeEach(async () => {
 		vi.useFakeTimers();
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(app, apiService, stateCache, makeSettings({ syncDebounceMs: 100 }));
@@ -978,7 +978,7 @@ describe('SyncBackService - syncFile() returns false (line 360)', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new SyncBackService(app, apiService, stateCache, makeSettings({ showSyncNotifications: true }));
@@ -1009,7 +1009,7 @@ describe('SyncBackService - uncovered branch coverage', () => {
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(app, apiService, stateCache, makeSettings());
@@ -1146,7 +1146,7 @@ describe('SyncBackService - processQueue() non-Error thrown branch (line 215)', 
 
 	beforeEach(async () => {
 		app = createMockApp();
-		stateCache = new StateCache(app, '.obsidian/plugins/brickset');
+		stateCache = new StateCache(app, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await stateCache.load();
 		apiService = new BricksetApiService('test-key', 'test-hash');
 		service = new TestableSyncBackService(

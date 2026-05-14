@@ -16,19 +16,54 @@ export interface CachedState {
 /** Frontmatter for LEGO set notes as returned from Obsidian's metadata cache. */
 export type LegoSetFrontmatter = Record<string, unknown>;
 
+/** `persistDebounceMs`: omit for default idle delay (local vault flush); `null` disables debounced writes (tests). */
+export type StateCacheOptions = {
+	persistDebounceMs?: number | null;
+};
+
+const DEFAULT_PERSIST_DEBOUNCE_MS = 10_000;
+
 export class StateCache {
 	private cache: Map<string, CachedState> = new Map();
 	private readonly cacheFile: string;
 	private isDirty = false;
+	private persistDebounceTimer: number | null = null;
+	private readonly persistDebounceMs: number | null;
 
-	constructor(private readonly app: App, pluginDir: string) {
+	constructor(
+		private readonly app: App,
+		pluginDir: string,
+		options?: StateCacheOptions,
+	) {
 		this.cacheFile = normalizePath(`${pluginDir}/state-cache.json`);
+		const raw = options?.persistDebounceMs;
+		this.persistDebounceMs = raw === undefined ? DEFAULT_PERSIST_DEBOUNCE_MS : raw;
+	}
+
+	private cancelDebouncedPersist(): void {
+		if (this.persistDebounceTimer !== null) {
+			window.clearTimeout(this.persistDebounceTimer);
+			this.persistDebounceTimer = null;
+		}
+	}
+
+	/** Writes dirty cache to the vault after idle (local disk only; no network). */
+	private scheduleDebouncedPersist(): void {
+		if (this.persistDebounceMs === null) {
+			return;
+		}
+		this.cancelDebouncedPersist();
+		this.persistDebounceTimer = window.setTimeout(() => {
+			this.persistDebounceTimer = null;
+			void this.save();
+		}, this.persistDebounceMs);
 	}
 
 	/**
 	 * Load cache from disk
 	 */
 	async load(): Promise<void> {
+		this.cancelDebouncedPersist();
 		try {
 			const file = this.app.vault.getFileByPath(this.cacheFile);
 			if (!file) {
@@ -55,6 +90,8 @@ export class StateCache {
 	 * Save cache to disk
 	 */
 	async save(): Promise<void> {
+		this.cancelDebouncedPersist();
+
 		if (!this.isDirty) {
 			return; // No changes to save
 		}
@@ -87,6 +124,7 @@ export class StateCache {
 	set(filePath: string, state: CachedState): void {
 		this.cache.set(filePath, state);
 		this.isDirty = true;
+		this.scheduleDebouncedPersist();
 	}
 
 	/**
@@ -95,6 +133,7 @@ export class StateCache {
 	delete(filePath: string): void {
 		if (this.cache.delete(filePath)) {
 			this.isDirty = true;
+			this.scheduleDebouncedPersist();
 		}
 	}
 
@@ -111,6 +150,7 @@ export class StateCache {
 	clear(): void {
 		this.cache.clear();
 		this.isDirty = true;
+		this.scheduleDebouncedPersist();
 	}
 
 	/**

@@ -30,7 +30,7 @@ describe('StateCache', () => {
 
 	beforeEach(() => {
 		app = createMockApp();
-		cache = new StateCache(app as unknown as App, '.obsidian/plugins/brickset');
+		cache = new StateCache(app as unknown as App, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 	});
 
 	describe('load()', () => {
@@ -157,6 +157,42 @@ describe('StateCache', () => {
 		});
 	});
 
+	describe('debounced persist', () => {
+		it('should flush to vault after default idle delay', async () => {
+			vi.useFakeTimers();
+			try {
+				app.vault.getFileByPath.mockReturnValue(null);
+				const debounced = new StateCache(app as unknown as App, '.obsidian/plugins/brickset');
+				debounced.set('test.md', { setID: 1, owned: false, wanted: false, lastModified: 0 });
+
+				expect(app.vault.create).not.toHaveBeenCalled();
+
+				await vi.advanceTimersByTimeAsync(10_000);
+
+				expect(app.vault.create).toHaveBeenCalledOnce();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('should cancel pending debounce when save() runs explicitly', async () => {
+			vi.useFakeTimers();
+			try {
+				app.vault.getFileByPath.mockReturnValue(null);
+				const debounced = new StateCache(app as unknown as App, '.obsidian/plugins/brickset');
+				debounced.set('test.md', { setID: 1, owned: false, wanted: false, lastModified: 0 });
+				await debounced.save();
+				expect(app.vault.create).toHaveBeenCalledOnce();
+
+				await vi.advanceTimersByTimeAsync(10_000);
+
+				expect(app.vault.create).toHaveBeenCalledOnce();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+	});
+
 	describe('get() and set()', () => {
 		it('should return null for unknown file', () => {
 			expect(cache.get('unknown.md')).toBeUndefined();
@@ -263,7 +299,7 @@ describe('StateCache - save() error handling', () => {
 				create: vi.fn().mockRejectedValue(new Error('Disk full'))
 			}
 		};
-		const cache = new StateCache(app as unknown as App, '.obsidian/plugins/brickset');
+		const cache = new StateCache(app as unknown as App, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		cache.set('test.md', { setID: 1, owned: false, wanted: false, lastModified: 0 });
 
 		await expect(cache.save()).resolves.toBeUndefined();
@@ -280,7 +316,7 @@ describe('StateCache - delete() branch (line 85)', () => {
 				create: vi.fn().mockResolvedValue(undefined)
 			}
 		};
-		const cache = new StateCache(app as unknown as App, '.obsidian/plugins/brickset');
+		const cache = new StateCache(app as unknown as App, '.obsidian/plugins/brickset', { persistDebounceMs: null });
 		await cache.load();
 
 		cache.delete('non-existent-key.md');

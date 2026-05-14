@@ -13,7 +13,6 @@ export default class BricksetPlugin extends Plugin {
 	private apiService: BricksetApiService | null = null;
 	private syncBackService: SyncBackService | null = null;
 	private stateCache: StateCache | null = null;
-	private stateCacheTimer: number | null = null;
 
 	constructor(app: App, manifest: PluginManifest) {
 		super(app, manifest);
@@ -24,12 +23,6 @@ export default class BricksetPlugin extends Plugin {
 
 		this.stateCache = new StateCache(this.app, this.manifest.dir || '');
 		await this.stateCache.load();
-
-		this.stateCacheTimer = window.setInterval(() => {
-			this.stateCache?.save().catch(err =>
-				console.error('Brickset: periodic state cache save failed', err)
-			);
-		}, 60_000);
 
 		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
 			if (!(file instanceof TFile)) return;
@@ -86,11 +79,6 @@ export default class BricksetPlugin extends Plugin {
 	// is disabled.
 	async onunload(): Promise<void> {
 		this.stopSyncBack();
-
-		if (this.stateCacheTimer !== null) {
-			window.clearInterval(this.stateCacheTimer);
-			this.stateCacheTimer = null;
-		}
 
 		if (this.stateCache) {
 			try {
